@@ -1,0 +1,23 @@
+services:
+  foodguard_db_new:
+    image: postgres:16
+    container_name: foodguard_db_new
+    environment:
+      POSTGRES_DB: foodguard_db
+      POSTGRES_USER: foodguard_user
+      POSTGRES_PASSWORD: foodguard_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - foodguard_postgres_data_new:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodguard_user -d foodguard_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  foodguard_postgres_data_new:
+    name: foodguard_postgres_data_new

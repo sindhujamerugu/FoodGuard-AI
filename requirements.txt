@@ -1,0 +1,21 @@
+# FoodGuard AI - Backend Foundation
+# Python 3.12+, Django 5.x
+
+# Core
+Django==5.2.17
+djangorestframework==3.17.1
+
+# Authentication
+djangorestframework-simplejwt==5.5.1
+
+# CORS
+django-cors-headers==4.9.0
+
+# Environment variables
+django-environ==0.14.0
+
+# Database
+psycopg2-binary==2.9.10
+
+# Image processing
+Pillow==11.3.0
