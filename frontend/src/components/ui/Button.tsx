@@ -1,0 +1,54 @@
+import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/cn'
+
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+type Size = 'sm' | 'md' | 'lg'
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant
+  size?: Size
+  isLoading?: boolean
+}
+
+const variantStyles: Record<Variant, string> = {
+  primary:
+    'bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900 disabled:bg-primary-300',
+  secondary:
+    'bg-neutral-800 text-white hover:bg-neutral-900 active:bg-neutral-950 disabled:bg-neutral-300',
+  outline:
+    'border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:text-neutral-400',
+  ghost: 'text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 disabled:text-neutral-300',
+  danger: 'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-700 disabled:bg-danger-100',
+}
+
+const sizeStyles: Record<Size, string> = {
+  sm: 'h-8 px-3 text-sm gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-12 px-6 text-base gap-2',
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          'inline-flex items-center justify-center rounded-lg font-medium transition-colors',
+          'disabled:cursor-not-allowed',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500',
+          variantStyles[variant],
+          sizeStyles[size],
+          className,
+        )}
+        disabled={disabled || isLoading}
+        aria-busy={isLoading}
+        {...props}
+      >
+        {isLoading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+        {children}
+      </button>
+    )
+  },
+)
+Button.displayName = 'Button'
