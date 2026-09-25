@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
+import { Reveal } from '@/components/motion/Reveal'
 import { COMPLAINT_CATEGORY_LABELS } from '@/types/complaint'
 import { formatDate } from '@/lib/format'
 import type { Complaint } from '@/types/complaint'
@@ -24,11 +25,14 @@ export function ComplaintTable({ complaints, showCustomer }: { complaints: Compl
           </tr>
         </thead>
         <tbody>
-          {complaints.map((complaint) => (
-            <tr
+          {complaints.map((complaint, i) => (
+            <Reveal
               key={complaint.id}
+              as="tr"
+              variant="fade"
+              delay={i * 40}
               onClick={() => navigate(`${base}/${complaint.id}`)}
-              className="cursor-pointer border-b border-neutral-50 last:border-0 hover:bg-neutral-25"
+              className="cursor-pointer border-b border-neutral-50 transition-colors last:border-0 hover:bg-neutral-25"
             >
               <td className="max-w-56 truncate px-5 py-3 font-medium text-neutral-900">{complaint.title}</td>
               <td className="px-5 py-3 text-neutral-600">{complaint.restaurant.name}</td>
@@ -45,7 +49,7 @@ export function ComplaintTable({ complaints, showCustomer }: { complaints: Compl
                 <PriorityBadge priority={complaint.priority} />
               </td>
               <td className="px-5 py-3 whitespace-nowrap text-neutral-500">{formatDate(complaint.submitted_at)}</td>
-            </tr>
+            </Reveal>
           ))}
         </tbody>
       </table>

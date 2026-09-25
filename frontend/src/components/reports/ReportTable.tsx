@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { ImageOff } from 'lucide-react'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
+import { Reveal } from '@/components/motion/Reveal'
 import { formatDate } from '@/lib/format'
 import type { FoodReport } from '@/types/report'
 
@@ -22,17 +23,25 @@ export function ReportTable({ reports, showCustomer }: { reports: FoodReport[]; 
           </tr>
         </thead>
         <tbody>
-          {reports.map((report) => (
-            <tr
+          {reports.map((report, i) => (
+            <Reveal
               key={report.id}
+              as="tr"
+              variant="fade"
+              delay={i * 40}
               onClick={() => navigate(`${showCustomer ? '/reviewer/reports' : '/reports'}/${report.id}`)}
-              className="cursor-pointer border-b border-neutral-50 last:border-0 hover:bg-neutral-25"
+              className="group cursor-pointer border-b border-neutral-50 transition-colors last:border-0 hover:bg-neutral-25"
             >
               <td className="px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-neutral-100">
                     {report.image ? (
-                      <img src={report.image} alt="" className="size-full object-cover" />
+                      <img
+                        src={report.image}
+                        alt=""
+                        loading="lazy"
+                        className="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
                     ) : (
                       <ImageOff className="size-4 text-neutral-300" aria-hidden="true" />
                     )}
@@ -53,7 +62,7 @@ export function ReportTable({ reports, showCustomer }: { reports: FoodReport[]; 
                 <PriorityBadge priority={report.priority} />
               </td>
               <td className="px-5 py-3 whitespace-nowrap text-neutral-500">{formatDate(report.created_at)}</td>
-            </tr>
+            </Reveal>
           ))}
         </tbody>
       </table>

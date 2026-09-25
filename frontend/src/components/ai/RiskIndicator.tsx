@@ -13,11 +13,21 @@ const config: Record<RiskLevel, { label: string; classes: string; Icon: typeof A
   },
 }
 
+const emphasize: Record<RiskLevel, boolean> = {
+  LOW: false,
+  MEDIUM: false,
+  HIGH: true,
+  HUMAN_REVIEW: true,
+}
+
 export function RiskIndicator({ risk }: { risk: RiskLevel }) {
   const { label, classes, Icon } = config[risk]
   return (
-    <div className={cn('flex items-center gap-2.5 rounded-xl border px-4 py-3', classes)}>
-      <Icon className="size-5 shrink-0" aria-hidden="true" />
+    <div className={cn('flex items-center gap-2.5 rounded-xl border px-4 py-3 transition-colors duration-300', classes)}>
+      <Icon
+        className={cn('size-5 shrink-0', emphasize[risk] && 'motion-safe:animate-pulse')}
+        aria-hidden="true"
+      />
       <span className="text-sm font-semibold">{label}</span>
     </div>
   )

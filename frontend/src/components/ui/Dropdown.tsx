@@ -51,7 +51,8 @@ export function Dropdown({ trigger, items, align = 'right' }: DropdownProps) {
         <div
           role="menu"
           className={cn(
-            'absolute z-20 mt-2 min-w-44 rounded-lg border border-neutral-200 bg-white py-1 shadow-popover',
+            'absolute z-20 mt-2 min-w-44 origin-top-right rounded-lg border border-neutral-200 bg-white py-1 shadow-popover',
+            'animate-[reveal-up_0.18s_cubic-bezier(.16,1,.3,1)_both] motion-reduce:animate-none',
             align === 'right' ? 'right-0' : 'left-0',
           )}
         >

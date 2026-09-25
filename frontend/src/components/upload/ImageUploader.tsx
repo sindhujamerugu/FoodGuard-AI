@@ -57,8 +57,12 @@ export function ImageUploader({
       )}
 
       {previewUrl ? (
-        <div className="relative w-full max-w-xs overflow-hidden rounded-xl border border-neutral-200">
-          <img src={previewUrl} alt="Evidence preview" className="aspect-square w-full object-cover" />
+        <div className="group relative w-full max-w-xs overflow-hidden rounded-xl border border-neutral-200 animate-reveal-up">
+          <img
+            src={previewUrl}
+            alt="Evidence preview"
+            className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
           <button
             type="button"
             onClick={() => {
@@ -67,7 +71,7 @@ export function ImageUploader({
               if (inputRef.current) inputRef.current.value = ''
             }}
             aria-label="Remove image"
-            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-neutral-900/70 text-white hover:bg-neutral-900"
+            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-neutral-900/70 text-white transition-transform duration-200 hover:scale-110 hover:bg-neutral-900"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -85,8 +89,10 @@ export function ImageUploader({
             validateAndSet(e.dataTransfer.files?.[0])
           }}
           className={cn(
-            'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
-            isDragging ? 'border-primary-400 bg-primary-50' : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100',
+            'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200',
+            isDragging
+              ? 'scale-[1.01] border-primary-400 bg-primary-50'
+              : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100',
           )}
         >
           <input

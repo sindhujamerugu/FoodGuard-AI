@@ -9,11 +9,16 @@ export function ReportCard({ report }: { report: FoodReport }) {
   return (
     <Link
       to={`/reports/${report.id}`}
-      className="flex gap-4 rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-shadow hover:shadow-card-hover"
+      className="group flex gap-4 rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100">
         {report.image ? (
-          <img src={report.image} alt="" className="size-full object-cover" />
+          <img
+            src={report.image}
+            alt=""
+            loading="lazy"
+            className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
         ) : (
           <ImageOff className="size-6 text-neutral-300" aria-hidden="true" />
         )}

@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom'
 import { MapPin } from 'lucide-react'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
+import { Reveal } from '@/components/motion/Reveal'
 import { COMPLAINT_CATEGORY_LABELS } from '@/types/complaint'
 import { LinkedReportBadge } from './ComplaintTimeline'
 import type { Complaint } from '@/types/complaint'
 
 export function ComplaintOverview({ complaint, showCustomer, reportLinkBase }: { complaint: Complaint; showCustomer?: boolean; reportLinkBase: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card">
+    <Reveal as="div" className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-neutral-900">{complaint.title}</h2>
@@ -27,7 +28,10 @@ export function ComplaintOverview({ complaint, showCustomer, reportLinkBase }: {
         <span className="inline-flex items-center rounded-lg bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-600">
           {COMPLAINT_CATEGORY_LABELS[complaint.category]}
         </span>
-        <Link to={`${reportLinkBase}/${complaint.food_report.id}`}>
+        <Link
+          to={`${reportLinkBase}/${complaint.food_report.id}`}
+          className="transition-transform duration-200 hover:-translate-y-0.5"
+        >
           <LinkedReportBadge title={complaint.food_report.title} status={complaint.food_report.status} />
         </Link>
       </div>
@@ -49,6 +53,6 @@ export function ComplaintOverview({ complaint, showCustomer, reportLinkBase }: {
           <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-success-700">{complaint.resolution_notes}</p>
         </div>
       )}
-    </div>
+    </Reveal>
   )
 }

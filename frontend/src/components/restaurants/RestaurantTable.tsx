@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
+import { Reveal } from '@/components/motion/Reveal'
 import type { Restaurant } from '@/types/restaurant'
 
 interface RestaurantTableProps {
@@ -24,8 +25,14 @@ export function RestaurantTable({ restaurants, onToggleVerified, onToggleActive,
           </tr>
         </thead>
         <tbody>
-          {restaurants.map((r) => (
-            <tr key={r.id} className="border-b border-neutral-50 last:border-0">
+          {restaurants.map((r, i) => (
+            <Reveal
+              key={r.id}
+              as="tr"
+              variant="fade"
+              delay={i * 40}
+              className="border-b border-neutral-50 transition-colors last:border-0 hover:bg-neutral-25"
+            >
               <td className="max-w-48 truncate px-5 py-3 font-medium text-neutral-900">{r.name}</td>
               <td className="px-5 py-3 text-neutral-600">
                 {r.owner.first_name} {r.owner.last_name}
@@ -73,7 +80,7 @@ export function RestaurantTable({ restaurants, onToggleVerified, onToggleActive,
                   </Button>
                 </div>
               </td>
-            </tr>
+            </Reveal>
           ))}
         </tbody>
       </table>

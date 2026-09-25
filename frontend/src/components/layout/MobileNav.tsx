@@ -42,7 +42,7 @@ export function MobileNav({ role, open, onClose }: MobileNavProps) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
                   isActive ? 'bg-primary-50 text-primary-800' : 'text-neutral-600 hover:bg-neutral-50',
                 )
               }

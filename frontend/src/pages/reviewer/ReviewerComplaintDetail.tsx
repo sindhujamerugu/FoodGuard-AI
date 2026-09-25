@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/states/ErrorState'
 import { Skeleton } from '@/components/states/LoadingSkeleton'
+import { Reveal } from '@/components/motion/Reveal'
 import { useComplaint, useUpdateComplaint } from '@/hooks/useComplaints'
 import { COMPLAINT_STATUS_TRANSITIONS } from '@/types/complaint'
 import type { ComplaintPriority, ComplaintStatus } from '@/types/complaint'
@@ -79,7 +80,7 @@ export default function ReviewerComplaintDetail() {
           <div className="space-y-6">
             <ComplaintOverview complaint={complaint} showCustomer reportLinkBase="/reviewer/reports" />
 
-            <div className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card">
+            <Reveal delay={80} className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card">
               <h3 className="mb-4 text-sm font-semibold text-neutral-900">Update workflow</h3>
               {isTerminal ? (
                 <p className="text-sm text-neutral-500">This complaint is closed. No further changes are allowed.</p>
@@ -117,13 +118,13 @@ export default function ReviewerComplaintDetail() {
                   </Button>
                 </div>
               )}
-            </div>
+            </Reveal>
           </div>
 
-          <div className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card">
+          <Reveal delay={150} className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card">
             <h3 className="mb-4 text-sm font-semibold text-neutral-900">Timeline</h3>
             <ComplaintTimeline complaint={complaint} />
-          </div>
+          </Reveal>
         </div>
       </div>
     </AppShell>

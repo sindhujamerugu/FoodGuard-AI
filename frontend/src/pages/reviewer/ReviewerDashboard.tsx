@@ -8,6 +8,7 @@ import { ComplaintTable } from '@/components/complaints/ComplaintTable'
 import { ErrorState } from '@/components/states/ErrorState'
 import { TableSkeleton } from '@/components/states/LoadingSkeleton'
 import { EmptyState } from '@/components/states/EmptyState'
+import { Reveal } from '@/components/motion/Reveal'
 import { useReports } from '@/hooks/useReports'
 import { useComplaints } from '@/hooks/useComplaints'
 import { useRestaurants } from '@/hooks/useRestaurants'
@@ -33,10 +34,16 @@ export default function ReviewerDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Reports needing attention" value={reportsNeedingAttention.length} icon={ShieldAlert} tone="warning" />
-        <StatCard label="Total reports" value={reports.length} icon={FileText} tone="primary" />
-        <StatCard label="Complaints needing attention" value={complaintsNeedingAttention.length} icon={MessageSquare} tone="danger" />
-        <StatCard label="Pending verification" value={pendingVerification.length} icon={Building2} tone="neutral" />
+        {[
+          { label: 'Reports needing attention', value: reportsNeedingAttention.length, icon: ShieldAlert, tone: 'warning' as const },
+          { label: 'Total reports', value: reports.length, icon: FileText, tone: 'primary' as const },
+          { label: 'Complaints needing attention', value: complaintsNeedingAttention.length, icon: MessageSquare, tone: 'danger' as const },
+          { label: 'Pending verification', value: pendingVerification.length, icon: Building2, tone: 'neutral' as const },
+        ].map((stat, i) => (
+          <Reveal key={stat.label} delay={i * 70}>
+            <StatCard {...stat} />
+          </Reveal>
+        ))}
       </div>
 
       <div className="mt-10">

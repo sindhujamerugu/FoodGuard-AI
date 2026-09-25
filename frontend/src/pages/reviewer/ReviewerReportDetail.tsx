@@ -8,6 +8,7 @@ import { AIDisclaimer } from '@/components/ai/AIDisclaimer'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/states/ErrorState'
 import { Skeleton } from '@/components/states/LoadingSkeleton'
+import { Reveal } from '@/components/motion/Reveal'
 import { useReport } from '@/hooks/useReports'
 import { useAIAnalysis, useRunAIAnalysis } from '@/hooks/useAIAnalysis'
 
@@ -46,7 +47,7 @@ export default function ReviewerReportDetail() {
 
         <ReportOverview report={report} showCustomer />
 
-        <div>
+        <Reveal delay={80}>
           <h3 className="mb-3 text-base font-semibold text-neutral-900">AI Assessment</h3>
           {analysisQuery.isLoading && <Skeleton className="h-40 w-full rounded-2xl" />}
           {analysisQuery.isSuccess && <AIAnalysisCard analysis={analysisQuery.data} />}
@@ -69,7 +70,7 @@ export default function ReviewerReportDetail() {
           {analysisQuery.isError && !analysisNotFound && (
             <ErrorState message="Couldn't load AI analysis." onRetry={() => analysisQuery.refetch()} />
           )}
-        </div>
+        </Reveal>
       </div>
     </AppShell>
   )

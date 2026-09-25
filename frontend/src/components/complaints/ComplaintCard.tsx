@@ -9,7 +9,7 @@ export function ComplaintCard({ complaint }: { complaint: Complaint }) {
   return (
     <Link
       to={`/complaints/${complaint.id}`}
-      className="flex flex-col gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-shadow hover:shadow-card-hover"
+      className="flex flex-col gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="truncate text-sm font-semibold text-neutral-900">{complaint.title}</h3>

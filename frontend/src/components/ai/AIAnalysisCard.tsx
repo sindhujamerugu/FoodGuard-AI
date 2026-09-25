@@ -3,6 +3,7 @@ import { RiskIndicator } from './RiskIndicator'
 import { ConfidenceBar } from './ConfidenceBar'
 import { ConcernChip } from './ConcernChip'
 import { AIDisclaimer } from './AIDisclaimer'
+import { Reveal } from '@/components/motion/Reveal'
 import { formatDateTime } from '@/lib/format'
 import type { AIAnalysis } from '@/types/aiAnalysis'
 
@@ -10,7 +11,7 @@ export function AIAnalysisCard({ analysis, compact }: { analysis: AIAnalysis; co
   const isMock = analysis.model_name.includes('mock')
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card">
+    <Reveal as="div" className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary-600" aria-hidden="true" />
@@ -46,6 +47,6 @@ export function AIAnalysisCard({ analysis, compact }: { analysis: AIAnalysis; co
 
         <AIDisclaimer />
       </div>
-    </div>
+    </Reveal>
   )
 }

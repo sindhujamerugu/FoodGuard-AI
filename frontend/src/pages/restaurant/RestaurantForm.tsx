@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/Button'
 import { useCreateRestaurant, useUpdateRestaurant } from '@/hooks/useRestaurants'
 import { restaurantSchema, type RestaurantFormValues } from '@/lib/schemas'
 import { toApiError } from '@/types/errors'
+import { Reveal } from '@/components/motion/Reveal'
+import { gradientCover } from '@/lib/gradientCover'
+import { cn } from '@/lib/cn'
 import type { Restaurant } from '@/types/restaurant'
 
 interface RestaurantFormProps {
@@ -63,14 +66,28 @@ export function RestaurantForm({ mode, existingRestaurant }: RestaurantFormProps
   return (
     <AppShell title={mode === 'create' ? 'New Restaurant' : 'Edit Restaurant'}>
       <div className="mx-auto max-w-2xl">
-        <h2 className="text-xl font-semibold text-neutral-900">
-          {mode === 'create' ? 'Register a restaurant' : 'Edit restaurant details'}
-        </h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          {mode === 'create'
-            ? 'Provide accurate details — verification is handled by FoodGuard AI reviewers.'
-            : 'Verification status can only be changed by a reviewer or admin.'}
-        </p>
+        {existingRestaurant && (
+          <Reveal
+            variant="fade"
+            className={cn(
+              'mb-6 flex h-24 items-end rounded-2xl bg-gradient-to-br px-6 py-4',
+              gradientCover(existingRestaurant.name),
+            )}
+          >
+            <h2 className="text-xl font-semibold text-white">{existingRestaurant.name}</h2>
+          </Reveal>
+        )}
+
+        <Reveal variant="fade">
+          {!existingRestaurant && (
+            <h2 className="text-xl font-semibold text-neutral-900">Register a restaurant</h2>
+          )}
+          <p className="mt-1 text-sm text-neutral-500">
+            {mode === 'create'
+              ? 'Provide accurate details — verification is handled by FoodGuard AI reviewers.'
+              : 'Verification status can only be changed by a reviewer or admin.'}
+          </p>
+        </Reveal>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 space-y-5">
           <Input label="Restaurant name" required error={errors.name?.message} {...register('name')} />

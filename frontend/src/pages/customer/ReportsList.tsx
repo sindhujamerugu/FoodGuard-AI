@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FileText, Plus } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { ReportCard } from '@/components/reports/ReportCard'
+import { Reveal } from '@/components/motion/Reveal'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ErrorState } from '@/components/states/ErrorState'
 import { ListSkeleton } from '@/components/states/LoadingSkeleton'
@@ -79,8 +80,10 @@ export default function ReportsList() {
       )}
       {reports.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {reports.map((report) => (
-            <ReportCard key={report.id} report={report} />
+          {reports.map((report, i) => (
+            <Reveal key={report.id} delay={i * 60}>
+              <ReportCard report={report} />
+            </Reveal>
           ))}
         </div>
       )}

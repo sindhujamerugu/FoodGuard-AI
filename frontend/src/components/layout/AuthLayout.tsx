@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Reveal } from '@/components/motion/Reveal'
 
 export function AuthLayout({
   title,
@@ -22,6 +23,7 @@ export function AuthLayout({
           }}
           aria-hidden="true"
         />
+        <div className="absolute -left-12 top-1/3 size-64 rounded-full bg-primary-500/20 blur-3xl animate-float" aria-hidden="true" />
         <Link to="/" className="relative flex items-center gap-2">
           <ShieldCheck className="size-7" aria-hidden="true" />
           <span className="text-lg font-semibold">FoodGuard AI</span>
@@ -44,9 +46,13 @@ export function AuthLayout({
             <ShieldCheck className="size-6 text-primary-700" aria-hidden="true" />
             <span className="text-lg font-semibold text-neutral-900">FoodGuard AI</span>
           </Link>
-          <h1 className="text-2xl font-semibold text-neutral-900">{title}</h1>
-          <p className="mt-1.5 text-sm text-neutral-500">{subtitle}</p>
-          <div className="mt-8">{children}</div>
+          <Reveal variant="fade">
+            <h1 className="text-2xl font-semibold text-neutral-900">{title}</h1>
+            <p className="mt-1.5 text-sm text-neutral-500">{subtitle}</p>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="mt-8">{children}</div>
+          </Reveal>
         </div>
       </div>
     </div>

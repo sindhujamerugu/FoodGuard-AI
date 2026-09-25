@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorState } from '@/components/states/ErrorState'
 import { Skeleton } from '@/components/states/LoadingSkeleton'
+import { Reveal } from '@/components/motion/Reveal'
 import { useDeleteReport, useReport, useSubmitReport } from '@/hooks/useReports'
 import { useAIAnalysis, useRunAIAnalysis } from '@/hooks/useAIAnalysis'
 import { useComplaints } from '@/hooks/useComplaints'
@@ -128,7 +129,7 @@ export default function ReportDetail() {
 
         <ReportOverview report={report} />
 
-        <div>
+        <Reveal delay={80}>
           <h3 className="mb-3 text-base font-semibold text-neutral-900">AI Assessment</h3>
           {analysisQuery.isLoading && <Skeleton className="h-40 w-full rounded-2xl" />}
           {analysisQuery.isSuccess && <AIAnalysisCard analysis={analysisQuery.data} compact />}
@@ -151,14 +152,14 @@ export default function ReportDetail() {
           {analysisQuery.isError && !analysisNotFound && (
             <ErrorState message="Couldn't load AI analysis." onRetry={() => analysisQuery.refetch()} />
           )}
-        </div>
+        </Reveal>
 
-        <div>
+        <Reveal delay={140}>
           <h3 className="mb-3 text-base font-semibold text-neutral-900">Complaint</h3>
           {linkedComplaint ? (
             <Link
               to={`/complaints/${linkedComplaint.id}`}
-              className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-white p-4 shadow-card hover:shadow-card-hover"
+              className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover"
             >
               <div>
                 <p className="text-sm font-medium text-neutral-900">{linkedComplaint.title}</p>
@@ -173,7 +174,7 @@ export default function ReportDetail() {
                 : 'A complaint can be filed once this report is submitted for review.'}
             </p>
           )}
-        </div>
+        </Reveal>
       </div>
 
       <ConfirmDialog

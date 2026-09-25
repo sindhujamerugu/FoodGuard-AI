@@ -20,14 +20,17 @@ export function Sidebar({ role }: { role: UserRole }) {
             end={item.end}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200',
                 isActive
                   ? 'bg-primary-50 text-primary-800'
                   : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
               )
             }
           >
-            <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
+            <item.icon
+              className="size-4.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
             {item.label}
           </NavLink>
         ))}

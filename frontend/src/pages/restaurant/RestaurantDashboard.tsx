@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Building2, Plus } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { RestaurantCard } from '@/components/restaurants/RestaurantCard'
+import { Reveal } from '@/components/motion/Reveal'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ErrorState } from '@/components/states/ErrorState'
 import { ListSkeleton } from '@/components/states/LoadingSkeleton'
@@ -46,8 +47,10 @@ export default function RestaurantDashboard() {
       )}
       {myRestaurants.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {myRestaurants.map((r) => (
-            <RestaurantCard key={r.id} restaurant={r} />
+          {myRestaurants.map((r, i) => (
+            <Reveal key={r.id} delay={i * 60}>
+              <RestaurantCard restaurant={r} />
+            </Reveal>
           ))}
         </div>
       )}

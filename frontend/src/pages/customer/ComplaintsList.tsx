@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { MessageSquare } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { ComplaintCard } from '@/components/complaints/ComplaintCard'
+import { Reveal } from '@/components/motion/Reveal'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ErrorState } from '@/components/states/ErrorState'
 import { ListSkeleton } from '@/components/states/LoadingSkeleton'
@@ -39,8 +40,10 @@ export default function ComplaintsList() {
       )}
       {isSuccess && data.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((complaint) => (
-            <ComplaintCard key={complaint.id} complaint={complaint} />
+          {data.map((complaint, i) => (
+            <Reveal key={complaint.id} delay={i * 60}>
+              <ComplaintCard complaint={complaint} />
+            </Reveal>
           ))}
         </div>
       )}

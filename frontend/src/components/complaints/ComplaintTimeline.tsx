@@ -33,10 +33,12 @@ export function ComplaintTimeline({ complaint }: { complaint: Complaint }) {
             ) : (
               <Circle className="size-5 text-neutral-300" aria-hidden="true" />
             )}
-            {i < steps.length - 1 && <div className={cn('mt-1 h-6 w-px', step.done ? 'bg-primary-200' : 'bg-neutral-200')} />}
+            {i < steps.length - 1 && (
+              <div className={cn('mt-1 h-6 w-px transition-colors duration-500', step.done ? 'bg-primary-200' : 'bg-neutral-200')} />
+            )}
           </div>
           <div className="pb-1">
-            <p className={cn('text-sm font-medium', step.done ? 'text-neutral-900' : 'text-neutral-400')}>{step.label}</p>
+            <p className={cn('text-sm font-medium transition-colors duration-300', step.done ? 'text-neutral-900' : 'text-neutral-400')}>{step.label}</p>
             {step.at && <p className="text-xs text-neutral-400">{formatDateTime(step.at)}</p>}
           </div>
         </li>
