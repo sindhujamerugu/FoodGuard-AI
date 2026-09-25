@@ -25,6 +25,12 @@ urlpatterns = [
 
     # Complaint endpoints: /api/v1/complaints/
     path("api/v1/complaints/", include("complaints.urls", namespace="complaints")),
+
+    # Escalation endpoints: /api/v1/escalations/
+    path("api/v1/escalations/", include("escalation.urls", namespace="escalation")),
+
+    # Feedback endpoints: /api/v1/feedback/
+    path("api/v1/feedback/", include("feedback.urls", namespace="feedback")),
 ]
 
 # Serve uploaded media files during development (DEBUG=True only)

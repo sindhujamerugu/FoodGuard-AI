@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     "food_reports",
     "ai_analysis",
     "complaints",
+    "escalation",
+    "feedback",
 ]
 
 

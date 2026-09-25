@@ -1,18 +1,22 @@
 """
-FoodGuard AI — AI Analysis Service Abstraction.
+FoodGuard AI — AI Analysis Service.
 
 Architecture
 ------------
 AIAnalysisService is a clean abstraction layer that separates the view
-from any analysis implementation.  The current implementation is a
-deterministic mock; it will be replaced by a real visual model without
-changing the view or serializer layers.
+from any analysis implementation.
 
-Language independence
----------------------
-All internal results use structured data (risk, concerns, confidence).
-A future TranslationService will convert `message` into the user's
-preferred_language without altering the stored originals.
+The service exposes one public method:
+    analyze_food_report(food_report)
+
+It always upserts the AIAnalysis record (update-or-create) so repeated
+calls update the existing row rather than inserting duplicates.
+
+Current backend
+---------------
+RealAIAnalysisService — MobileNetV3-Small trained on the 3-class
+FoodGuard Quality Dataset (normal / spoilage_indicator / mold_like_growth).
+Model weights are loaded once and cached for the process lifetime.
 
 Terminology
 -----------
@@ -22,14 +26,16 @@ They do NOT constitute:
   - proof of contamination
   - evidence of restaurant wrongdoing
 
-No external APIs.  No ML training.  No datasets.  No OCR.
+No external APIs.  No retraining.  No datasets.  No OCR.
 """
+
+import os
+from pathlib import Path
 
 from django.utils import timezone
 
 from food_reports.models import FoodReport
 from ai_analysis.models import AIAnalysis
-
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -40,98 +46,74 @@ class AnalysisError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Mock result constant
+# Model-artifact paths (used to detect whether real model exists)
 # ---------------------------------------------------------------------------
 
-# This result is intentionally generic and non-committal.
-# It clearly signals mock mode so no one mistakes it for a real prediction.
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_MODEL_PT     = _PROJECT_ROOT / "models" / "food_quality" / "model.pt"
+_LABEL_MAP    = _PROJECT_ROOT / "models" / "food_quality" / "label_map.json"
+
+
+# ---------------------------------------------------------------------------
+# Mock result — kept for fallback / testing without model artifacts
+# ---------------------------------------------------------------------------
+
 _MOCK_RESULT = {
-    "food": "unknown",
-    "risk": AIAnalysis.Risk.HUMAN_REVIEW,
-    "confidence": 0.0,
-    "concerns": ["uncertain"],
+    "food":         "unknown",
+    "risk":         AIAnalysis.Risk.HUMAN_REVIEW,
+    "confidence":   0.0,
+    "concerns":     ["uncertain"],
     "message": (
         "AI analysis is currently running in mock mode. "
         "A real visual model will be integrated in a future release. "
         "This result is NOT a scientific food-safety determination."
     ),
-    "model_name": "mock-foodguard-ai",
+    "model_name":    "mock-foodguard-ai",
     "model_version": "0.1.0",
 }
 
 
 # ---------------------------------------------------------------------------
-# Service
+# Base service
 # ---------------------------------------------------------------------------
 
 class AIAnalysisService:
     """
-    Abstraction layer for food-report AI analysis.
+    Public interface for food-report AI analysis.
 
-    Usage
-    -----
-    service = AIAnalysisService()
-    analysis = service.analyze_food_report(food_report)
-
-    The service always upserts (update-or-create) the AIAnalysis record so
-    repeated calls update the existing row rather than inserting duplicates.
-
-    Replacing the implementation
-    ----------------------------
-    To swap in a real model, subclass this service or replace the
-    `_run_analysis` method.  The view and serializers do not need to change.
+    Automatically delegates to RealAIAnalysisService when model.pt exists,
+    falling back to the mock implementation when it does not.  This keeps
+    the API layer, serializers, and tests unchanged.
     """
 
     def analyze_food_report(self, food_report: FoodReport) -> AIAnalysis:
-        """
-        Run analysis on a FoodReport.
-
-        Steps
-        -----
-        1. Validate the report has an image.
-        2. Set status to PROCESSING.
-        3. Run the analysis backend (currently mock).
-        4. Persist the result (upsert).
-        5. Return the AIAnalysis instance.
-
-        Raises AnalysisError if the report has no image.
-        """
         self._validate(food_report)
 
-        # Mark as processing — persists immediately so GET analysis
-        # during a long-running real job would show PROCESSING.
         analysis, _ = AIAnalysis.objects.update_or_create(
             food_report=food_report,
-            defaults={
-                "status": AIAnalysis.Status.PROCESSING,
-            },
+            defaults={"status": AIAnalysis.Status.PROCESSING},
         )
 
         try:
             result = self._run_analysis(food_report)
-            analysis.status = AIAnalysis.Status.COMPLETED
-            analysis.risk = result["risk"]
-            analysis.confidence = result["confidence"]
-            analysis.concerns = result["concerns"]
-            analysis.message = result["message"]
-            analysis.model_name = result["model_name"]
+            analysis.status      = AIAnalysis.Status.COMPLETED
+            analysis.risk        = result["risk"]
+            analysis.confidence  = result["confidence"]
+            analysis.concerns    = result["concerns"]
+            analysis.message     = result["message"]
+            analysis.model_name  = result["model_name"]
             analysis.model_version = result["model_version"]
             analysis.analyzed_at = timezone.now()
             analysis.save()
         except Exception as exc:
-            analysis.status = AIAnalysis.Status.FAILED
+            analysis.status  = AIAnalysis.Status.FAILED
             analysis.message = f"Analysis failed: {exc}"
             analysis.save()
             raise AnalysisError(str(exc)) from exc
 
         return analysis
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
     def _validate(self, food_report: FoodReport) -> None:
-        """Raise AnalysisError if the report is not ready for analysis."""
         if not food_report.image:
             raise AnalysisError(
                 "This food report does not have an attached image. "
@@ -140,13 +122,37 @@ class AIAnalysisService:
 
     def _run_analysis(self, food_report: FoodReport) -> dict:
         """
-        Execute the analysis and return a structured result dict.
-
-        Current implementation: deterministic mock.
-        Future implementation: replace with real visual model call.
-
-        The returned dict must contain:
-            food, risk, confidence, concerns, message,
-            model_name, model_version
+        Dispatch to real model if available, otherwise use mock.
+        Subclasses may override this method.
         """
+        if _MODEL_PT.exists() and _LABEL_MAP.exists():
+            return _run_real_analysis(food_report)
         return _MOCK_RESULT.copy()
+
+
+# ---------------------------------------------------------------------------
+# Real-model analysis helper (called when artifacts exist)
+# ---------------------------------------------------------------------------
+
+def _run_real_analysis(food_report: FoodReport) -> dict:
+    """
+    Call the inference engine with the report's image path.
+    Translates the inference engine's output into the canonical
+    result dict expected by AIAnalysisService.
+    """
+    from ai_analysis.inference import run_inference
+
+    # Resolve absolute image path from Django ImageField
+    image_path = food_report.image.path
+
+    result = run_inference(image_path)
+
+    return {
+        "food":          result["predicted_class"],
+        "risk":          result["risk"],
+        "confidence":    result["confidence"],
+        "concerns":      result["concerns"],
+        "message":       result["message"],
+        "model_name":    result["model_name"],
+        "model_version": result["model_version"],
+    }

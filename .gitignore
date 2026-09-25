@@ -1,3 +1,6 @@
+# ============================================================
+# Python / Django
+# ============================================================
 .venv/
 venv/
 __pycache__/
@@ -7,9 +10,85 @@ __pycache__/
 db.sqlite3
 media/
 staticfiles/
-.vscode/
-.idea/
 *.log
 pip_list.txt
+
+# ============================================================
+# Editors / OS
+# ============================================================
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+
+# ============================================================
+# Dataset files — raw images and archives MUST NOT be committed
+# ============================================================
+
+# Raw dataset directories
+data/raw/food_recognition/food101/
+data/raw/food_recognition/indian_food/
+data/raw/food_quality/
+data/raw/fssai/
+
+# Processed / split data
+data/processed/
+data/splits/
+
+# Archive formats (dataset downloads)
+*.tar.gz
+*.tgz
+*.zip
+*.tar
+*.gz
+*.bz2
+*.7z
+*.rar
+
+# Image files inside data/ (never commit training images)
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.png
+data/**/*.bmp
+data/**/*.gif
+data/**/*.webp
+data/**/*.tiff
+
+# CSV/JSON data dumps inside data/ (may contain PII or large files)
+data/**/*.csv
+data/**/*.jsonl
+data/**/*.parquet
+data/**/*.feather
+data/**/*.pkl
+data/**/*.pickle
+data/**/*.npy
+data/**/*.npz
+
+# ============================================================
+# ML model artefacts — NEVER commit binary model files
+# ============================================================
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.ckpt
+*.onnx
+*.pb
+*.tflite
+*.bin
+*.safetensors
+models/
+checkpoints/
+runs/
+mlruns/
+wandb/
+
+# ============================================================
+# Exceptions — KEEP directory structure and documentation
+# ============================================================
+# .gitkeep files mark intentionally empty directories
+!data/**/.gitkeep
+!docs/**
+!src/**
+data/
+src/__pycache__/
