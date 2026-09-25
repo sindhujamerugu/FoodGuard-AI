@@ -6,7 +6,7 @@ AI-powered food safety reporting and complaint management system.
 
 ## Current State
 
-Steps 1 – 6 complete:
+Steps 1 – 9 complete:
 - Django backend foundation
 - PostgreSQL database (isolated Docker instance on port 5434)
 - Custom User model with roles and multilingual preference
@@ -15,6 +15,9 @@ Steps 1 – 6 complete:
 - Food report creation and image upload with submission workflow
 - AI Analysis Service abstraction with mock implementation (real ML NOT integrated)
 - Complaint management system with multilingual language preservation
+- Complaint escalation management (application-level workflow only)
+- Customer feedback for resolved/closed complaints
+- Dataset acquisition plan, directory structure, and validation foundation (no data downloaded)
 
 ---
 
@@ -66,7 +69,25 @@ D:\foodai\
 │   ├── permissions.py
 │   ├── tests.py
 │   └── migrations/
-└── complaints/
+└── feedback/
+    ├── models.py          # Feedback: rating 1–5, unique per complaint, original_language
+    ├── services.py        # FeedbackService: ownership, status, duplicate guards
+    ├── serializers.py
+    ├── views.py
+    ├── urls.py
+    ├── admin.py
+    ├── permissions.py
+    ├── tests.py
+    └── migrations/
+    ├── models.py          # Escalation: LEVEL_1/2/3, PENDING→IN_REVIEW→RESOLVED→CLOSED
+    ├── services.py        # EscalationService: create, update, status transitions
+    ├── serializers.py
+    ├── views.py
+    ├── urls.py
+    ├── admin.py
+    ├── permissions.py
+    ├── tests.py
+    └── migrations/
     ├── models.py          # Complaint: category/status/priority lifecycle, original_language
     ├── services.py        # ComplaintService: create, update, status transitions
     ├── serializers.py
@@ -251,7 +272,108 @@ DRAFT → SUBMITTED → UNDER_REVIEW → RESOLVED / CLOSED
 
 ---
 
-## Complaint Management
+## Customer Feedback
+
+### Purpose
+Customers may submit a satisfaction rating and optional comments after a complaint has been resolved or closed. This provides a quality signal to reviewers and admins without requiring additional staff interaction.
+
+### Rules
+
+| Rule | Detail |
+|---|---|
+| Rating range | Integer 1–5 (inclusive). 0, 6, negatives, non-integers rejected. |
+| Complaint status required | `RESOLVED` or `CLOSED` only. `SUBMITTED` and `UNDER_REVIEW` rejected. |
+| Ownership | Only the customer who owns the complaint may submit feedback. |
+| One per complaint | Unique DB constraint + service guard. Duplicates are rejected with a clear error. |
+| Immutability | `complaint` and `customer` cannot change after creation. No PATCH or DELETE endpoints. |
+| `customer` derivation | Always set from `request.user` — client cannot supply or override it. |
+| `original_language` | Derived from `request.user.preferred_language` — client cannot override it. |
+| Comments | Stored exactly as entered. Never auto-translated or overwritten. |
+
+### Feedback Endpoints
+
+| Method | URL | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/feedback/` | CUSTOMER | Submit feedback for a resolved/closed complaint |
+| `GET` | `/api/v1/feedback/` | JWT | List (customer: own; reviewer/admin: all) |
+| `GET` | `/api/v1/feedback/<id>/` | Owner / REVIEWER / ADMIN | Feedback detail |
+
+### Feedback Permissions
+
+| Role | Create | Read |
+|---|---|---|
+| CUSTOMER (own complaint) | ✅ | ✅ own only |
+| CUSTOMER (other's complaint) | ❌ 400 | ❌ 403 |
+| REVIEWER | ❌ | ✅ all |
+| ADMIN | ❌ | ✅ all |
+| RESTAURANT_USER | ❌ | ❌ 403 |
+| Unauthenticated | ❌ 401 | ❌ 401 |
+
+### Multilingual
+
+- `original_language` stores the customer's language code (`en`, `te`, `hi`, `ta`, `kn`, `mr`) at submission time.
+- `comments` are preserved verbatim.
+- Future `TranslationService` can translate for reviewers without modifying the stored original.
+
+---
+
+> ⚠️ **APPLICATION-LEVEL WORKFLOW ONLY**
+> Escalation levels are internal platform tiers.
+> They are **NOT automatically mapped** to any government authority,
+> external regulatory body, or real-world enforcement agency.
+
+### Purpose
+Reviewers and Admins may escalate a Complaint to a higher internal review tier when:
+- A complaint remains unresolved after the review period
+- A serious visible concern requires senior oversight
+- The assigned reviewer requires higher-level input
+- Resolution is deemed insufficient
+
+### Escalation Levels
+
+| Level | Meaning |
+|---|---|
+| `LEVEL_1` | First higher-level review within the platform |
+| `LEVEL_2` | Further escalation to senior reviewer/admin |
+| `LEVEL_3` | Highest application-level review available |
+
+### Escalation Lifecycle
+
+```
+PENDING → IN_REVIEW → RESOLVED → CLOSED
+```
+
+- `CLOSED` is terminal — no further transitions.
+- `resolved_at` is set when status becomes `RESOLVED` or `CLOSED`.
+- Only one active escalation (PENDING or IN_REVIEW) per Complaint at a time.
+- Historical RESOLVED/CLOSED escalations allow a new active escalation to be created.
+
+### Escalation Endpoints
+
+| Method | URL | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/escalations/` | REVIEWER / ADMIN | Create escalation |
+| `GET` | `/api/v1/escalations/` | REVIEWER / ADMIN | List all escalations |
+| `GET` | `/api/v1/escalations/<id>/` | REVIEWER / ADMIN | Escalation detail |
+| `PATCH` | `/api/v1/escalations/<id>/` | REVIEWER / ADMIN | Update workflow fields |
+
+### Escalation Permission Boundaries
+
+| Role | Access |
+|---|---|
+| REVIEWER | Full create / read / update |
+| ADMIN | Full create / read / update |
+| CUSTOMER | ❌ 403 |
+| RESTAURANT_USER | ❌ 403 |
+| Unauthenticated | ❌ 401 |
+
+### Escalation Multilingual Preservation
+
+- `original_language` is derived from `created_by.preferred_language` at creation — immutable.
+- `reason` and `resolution_notes` are stored exactly as entered.
+- No auto-translation. Future `TranslationService` will localize without overwriting originals.
+
+---
 
 ### Purpose
 Customers file a formal complaint against a submitted FoodReport.
@@ -369,6 +491,9 @@ without overwriting the stored originals.
 ## Run Tests
 
 ```bash
+# Feedback tests (30 tests)
+python manage.py test feedback --verbosity 2
+
 # Complaint tests (38 tests)
 python manage.py test complaints --verbosity 2
 
@@ -397,12 +522,10 @@ Registered models: User, Restaurant, FoodReport — each with search, filters, a
 
 ## Not Yet Implemented
 
-- Escalation
-- Feedback
+- Real ML visual food-recognition model (mock in place; real integration in Step 10+)
+- Dataset download (plan and validation foundation ready; no data downloaded)
 - Evidence
 - Notifications
 - Analytics
-- TranslationService (preferred_language plumbing is in place; translation calls are not)
-- Real ML visual food-recognition model (currently mock)
-- Dataset download or training pipeline
+- TranslationService (language plumbing is in place; translation calls are not)
 - Frontend
