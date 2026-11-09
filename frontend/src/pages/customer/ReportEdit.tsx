@@ -3,16 +3,18 @@ import { AppShell } from '@/components/layout/AppShell'
 import { ErrorState } from '@/components/states/ErrorState'
 import { Skeleton } from '@/components/states/LoadingSkeleton'
 import { useReport } from '@/hooks/useReports'
+import { useTranslation } from '@/i18n/LanguageContext'
 import { ReportForm } from './ReportForm'
 
 export default function ReportEdit() {
   const { id } = useParams<{ id: string }>()
   const reportId = Number(id)
+  const t = useTranslation()
   const { data: report, isLoading, isError, refetch } = useReport(reportId)
 
   if (isLoading) {
     return (
-      <AppShell title="Edit Report">
+      <AppShell title={t('reports.form.editReport')}>
         <div className="mx-auto max-w-2xl space-y-4">
           <Skeleton className="h-8 w-1/2" />
           <Skeleton className="h-32 w-full" />
@@ -23,8 +25,8 @@ export default function ReportEdit() {
 
   if (isError || !report) {
     return (
-      <AppShell title="Edit Report">
-        <ErrorState message="We couldn't load this report." onRetry={() => refetch()} />
+      <AppShell title={t('reports.form.editReport')}>
+        <ErrorState message={t('reports.detail.loadError')} onRetry={() => refetch()} />
       </AppShell>
     )
   }

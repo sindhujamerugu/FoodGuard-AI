@@ -13,6 +13,7 @@ from users.serializers import (
     LogoutSerializer,
     RegisterSerializer,
     UpdatePreferredLanguageSerializer,
+    UserProfileUpdateSerializer,
     UserResponseSerializer,
 )
 
@@ -124,9 +125,8 @@ class ProfileView(APIView):
 
     JWT required. Returns full profile — never password.
 
-    PATCH accepts only `preferred_language` — the one field the frontend's
-    language selector needs to persist across sessions/devices. It is not
-    a general profile-edit endpoint.
+    PATCH accepts first_name, last_name, phone, and preferred_language.
+    Unauthorized fields (e.g. email, role, is_active) are explicitly rejected.
     """
 
     permission_classes = [IsAuthenticated]
@@ -137,19 +137,21 @@ class ProfileView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        request=UpdatePreferredLanguageSerializer,
+        request=UserProfileUpdateSerializer,
         responses={200: UserResponseSerializer, 400: dict},
-        description="Updates the authenticated user's preferred_language only.",
+        description="Updates the authenticated user's profile (first_name, last_name, phone, preferred_language).",
     )
     def patch(self, request: Request) -> Response:
-        serializer = UpdatePreferredLanguageSerializer(data=request.data)
+        serializer = UserProfileUpdateSerializer(
+            instance=request.user,
+            data=request.data,
+            partial=True,
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        request.user.preferred_language = serializer.validated_data["preferred_language"]
-        request.user.save(update_fields=["preferred_language", "updated_at"])
-
-        return Response(UserResponseSerializer(request.user).data, status=status.HTTP_200_OK)
+        user = serializer.save()
+        return Response(UserResponseSerializer(user).data, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):

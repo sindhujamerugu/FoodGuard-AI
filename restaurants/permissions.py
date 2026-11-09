@@ -81,20 +81,13 @@ class RestaurantListCreatePermission(BasePermission):
     Controls list + create access:
 
     GET  (list)   — any authenticated user
-    POST (create) — RESTAURANT_USER or ADMIN only
+    POST (create) — any authenticated user (Customer creates unclaimed; Restaurant User becomes owner)
     """
 
-    message = "Only restaurant users or admins may create restaurants."
+    message = "Authentication required to view or create restaurants."
 
     def has_permission(self, request, view) -> bool:
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user.role in (
-            User.Role.RESTAURANT_USER,
-            User.Role.ADMIN,
-        )
+        return bool(request.user and request.user.is_authenticated)
 
 
 class RestaurantDetailPermission(BasePermission):
@@ -109,7 +102,7 @@ class RestaurantDetailPermission(BasePermission):
     message = "You do not have permission to perform this action on this restaurant."
 
     def has_permission(self, request, view) -> bool:
-        return request.user and request.user.is_authenticated
+        return bool(request.user and request.user.is_authenticated)
 
     def has_object_permission(self, request, view, obj) -> bool:
         if request.method in SAFE_METHODS:
@@ -123,10 +116,10 @@ class RestaurantDetailPermission(BasePermission):
             if request.user.role == User.Role.REVIEWER:
                 return True
             if request.user.role == User.Role.RESTAURANT_USER:
-                return obj.owner_id == request.user.pk
+                return obj.owner_id is not None and obj.owner_id == request.user.pk
 
         if request.method == "DELETE":
             if request.user.role == User.Role.RESTAURANT_USER:
-                return obj.owner_id == request.user.pk
+                return obj.owner_id is not None and obj.owner_id == request.user.pk
 
         return False

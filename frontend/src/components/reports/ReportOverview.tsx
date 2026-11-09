@@ -3,9 +3,11 @@ import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
 import { Reveal } from '@/components/motion/Reveal'
 import { formatDateTime } from '@/lib/format'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { FoodReport } from '@/types/report'
 
 export function ReportOverview({ report, showCustomer }: { report: FoodReport; showCustomer?: boolean }) {
+  const { language } = useLanguage()
   return (
     <Reveal as="div" className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -49,8 +51,8 @@ export function ReportOverview({ report, showCustomer }: { report: FoodReport; s
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2 text-xs text-neutral-500">
-        <span className="rounded-full bg-neutral-50 px-3 py-1">Created {formatDateTime(report.created_at)}</span>
-        <span className="rounded-full bg-neutral-50 px-3 py-1">Updated {formatDateTime(report.updated_at)}</span>
+        <span className="rounded-full bg-neutral-50 px-3 py-1">Created {formatDateTime(report.created_at, language)}</span>
+        <span className="rounded-full bg-neutral-50 px-3 py-1">Updated {formatDateTime(report.updated_at, language)}</span>
       </div>
     </Reveal>
   )

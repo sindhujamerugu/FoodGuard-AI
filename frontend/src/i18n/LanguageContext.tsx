@@ -2,18 +2,26 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { authApi } from '@/api/auth'
 import { useAuth } from '@/context/AuthContext'
 import { en, type TranslationKey } from './en'
+export type { TranslationKey } from './en'
 import { hi } from './hi'
 import { te } from './te'
+import { ta } from './ta'
+import { kn } from './kn'
+import { mr } from './mr'
 
-/** Languages with a real translation dictionary in this app. The backend
- * User.Language field supports more codes (ta/kn/mr) for future
- * expansion — see frontend/src/types/user.ts's LANGUAGE_LABELS — but the
- * UI only ever renders one of these three today; anything else falls
- * back to English (see useTranslation()'s `t()` below). */
-export const SUPPORTED_UI_LANGUAGES = ['en', 'te', 'hi'] as const
+/** All six supported UI languages for FoodGuard AI:
+ * English, Telugu, Hindi, Tamil, Kannada, and Marathi. */
+export const SUPPORTED_UI_LANGUAGES = ['en', 'te', 'hi', 'ta', 'kn', 'mr'] as const
 export type UiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number]
 
-const DICTIONARIES: Record<UiLanguage, Partial<Record<TranslationKey, string>>> = { en, te, hi }
+export const DICTIONARIES: Record<UiLanguage, Partial<Record<TranslationKey, string>>> = {
+  en,
+  te,
+  hi,
+  ta,
+  kn,
+  mr,
+}
 
 const STORAGE_KEY = 'foodguard.language'
 
@@ -49,9 +57,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // on this device/browser.
   useEffect(() => {
     if (!isAuthenticated || !user) return
-    if (readStoredLanguage() !== null) return
-    if (isSupportedUiLanguage(user.preferred_language)) {
+    const stored = readStoredLanguage()
+    if (stored) {
+      if (stored !== user.preferred_language) {
+        void authApi.updatePreferredLanguage(stored).catch(() => {})
+      }
+    } else if (isSupportedUiLanguage(user.preferred_language)) {
       setLanguageState(user.preferred_language)
+      try {
+        localStorage.setItem(STORAGE_KEY, user.preferred_language)
+      } catch {
+        // Storage disabled/private browsing
+      }
     }
   }, [isAuthenticated, user])
 
@@ -76,7 +93,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: TranslationKey, vars?: Record<string, string | number>): string => {
-      const text = DICTIONARIES[language][key] ?? en[key]
+      const text = DICTIONARIES[language][key] ?? en[key] ?? key
       if (!vars) return text
       return Object.entries(vars).reduce(
         (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
@@ -97,7 +114,19 @@ export function useLanguage(): LanguageContextValue {
   return ctx
 }
 
-/** Convenience hook for components that only need the translate function. */
+/**
+ * Convenience hook that supports both `const t = useTranslation()` and
+ * `const { t, language } = useTranslation()`.
+ */
 export function useTranslation() {
-  return useLanguage().t
+  const { t, language, setLanguage } = useLanguage()
+  const fn = t as ((key: TranslationKey, vars?: Record<string, string | number>) => string) & {
+    t: typeof t
+    language: UiLanguage
+    setLanguage: typeof setLanguage
+  }
+  fn.t = t
+  fn.language = language
+  fn.setLanguage = setLanguage
+  return fn
 }

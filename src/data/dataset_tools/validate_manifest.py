@@ -266,15 +266,23 @@ def validate_row(
     ):
         norm = image_path.replace("\\", "/")
         parts = norm.split("/")
-        if item_id not in parts:
-            report.error(f"{loc}: image_path {image_path!r} does not contain item_id {item_id!r} as a path segment")
-        elif session_id not in parts:
-            report.error(f"{loc}: image_path {image_path!r} does not contain session_id {session_id!r} as a path segment")
-        elif parts.index(item_id) >= parts.index(session_id):
-            report.error(
-                f"{loc}: image_path {image_path!r} must have item_id {item_id!r} "
-                f"appear before session_id {session_id!r}"
-            )
+        # Team/pilot captures strictly follow COLLECTION_README.md: <item_id>/<session_id>/<filename>
+        if source in {"team_capture", "pilot_consented"}:
+            if item_id not in parts:
+                report.error(f"{loc}: image_path {image_path!r} does not contain item_id {item_id!r} as a path segment")
+            elif session_id not in parts:
+                report.error(f"{loc}: image_path {image_path!r} does not contain session_id {session_id!r} as a path segment")
+            elif parts.index(item_id) >= parts.index(session_id):
+                report.error(
+                    f"{loc}: image_path {image_path!r} must have item_id {item_id!r} "
+                    f"appear before session_id {session_id!r}"
+                )
+        elif item_id in parts and session_id in parts:
+            if parts.index(item_id) >= parts.index(session_id):
+                report.error(
+                    f"{loc}: image_path {image_path!r} must have item_id {item_id!r} "
+                    f"appear before session_id {session_id!r}"
+                )
 
     return image_id if isinstance(image_id, str) else None
 

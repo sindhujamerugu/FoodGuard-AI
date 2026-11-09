@@ -86,12 +86,19 @@ class TestRestaurantCreate(APITestCase):
         self.resto_user = make_user("resto@example.com", role=User.Role.RESTAURANT_USER)
         self.customer = make_user("cust@example.com", role=User.Role.CUSTOMER)
 
-    def test_05_customer_cannot_create_restaurant(self):
+    def test_05_customer_can_create_unclaimed_restaurant(self):
         resp = self.client.post(
             BASE_URL, RESTAURANT_PAYLOAD, format="json",
             **auth_header(self.customer),
         )
-        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        data = resp.json()
+        self.assertIsNone(data["owner"])
+        self.assertFalse(data["is_verified"])
+        self.assertTrue(data["is_active"])
+        self.assertFalse(data["is_claimed"])
+        self.assertEqual(data["claim_status"], "UNCLAIMED")
+        self.assertEqual(data["name"], RESTAURANT_PAYLOAD["name"])
 
     def test_06_restaurant_user_can_create(self):
         resp = self.client.post(
@@ -273,3 +280,169 @@ class TestRestaurantValidation(APITestCase):
             BASE_URL, payload, format="json", **auth_header(self.owner)
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Unclaimed & Claim Flow tests
+# ---------------------------------------------------------------------------
+
+class TestUnclaimedAndClaimFlow(APITestCase):
+
+    def setUp(self):
+        self.customer = make_user("cust_claim@example.com", role=User.Role.CUSTOMER)
+        self.resto_user = make_user("resto_claim@example.com", role=User.Role.RESTAURANT_USER)
+        self.reviewer = make_user("reviewer_claim@example.com", role=User.Role.REVIEWER)
+
+    def test_search_filter_returns_matches(self):
+        r1 = Restaurant.objects.create(
+            name="Hyderabad Biryani House",
+            address="Road 1",
+            city="Hyderabad",
+            state="Telangana",
+            pincode="500001",
+        )
+        r2 = Restaurant.objects.create(
+            name="Bangalore Dosa Corner",
+            address="Road 2",
+            city="Bengaluru",
+            state="Karnataka",
+            pincode="560001",
+        )
+        resp = self.client.get(
+            f"{BASE_URL}?search=Hyderabad",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        names = [item["name"] for item in resp.json()]
+        self.assertIn("Hyderabad Biryani House", names)
+        self.assertNotIn("Bangalore Dosa Corner", names)
+
+    def test_customer_cannot_modify_or_delete_unclaimed_restaurant(self):
+        resp = self.client.post(
+            BASE_URL, RESTAURANT_PAYLOAD, format="json",
+            **auth_header(self.customer),
+        )
+        resto_id = resp.json()["id"]
+
+        # Attempt PATCH
+        patch_resp = self.client.patch(
+            f"{BASE_URL}{resto_id}/",
+            {"name": "Hijacked Name"},
+            format="json",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Attempt DELETE
+        del_resp = self.client.delete(
+            f"{BASE_URL}{resto_id}/",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(del_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_duplicate_restaurant_returns_existing(self):
+        # Create initial
+        resp1 = self.client.post(
+            BASE_URL, RESTAURANT_PAYLOAD, format="json",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(resp1.status_code, status.HTTP_201_CREATED)
+        first_id = resp1.json()["id"]
+
+        # Post duplicate with same name and city (different case)
+        payload_dup = {
+            **RESTAURANT_PAYLOAD,
+            "name": RESTAURANT_PAYLOAD["name"].lower(),
+            "city": RESTAURANT_PAYLOAD["city"].upper(),
+        }
+        resp2 = self.client.post(
+            BASE_URL, payload_dup, format="json",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp2.json()["id"], first_id)
+        # Total count remains 1
+        self.assertEqual(Restaurant.objects.filter(name__iexact=RESTAURANT_PAYLOAD["name"]).count(), 1)
+
+    def test_restaurant_user_claim_and_reviewer_approve_flow(self):
+        # Customer creates unclaimed restaurant
+        resp = self.client.post(
+            BASE_URL, RESTAURANT_PAYLOAD, format="json",
+            **auth_header(self.customer),
+        )
+        resto_id = resp.json()["id"]
+
+        # Customer cannot claim
+        claim_cust = self.client.post(
+            f"{BASE_URL}{resto_id}/claim/",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(claim_cust.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Restaurant User claims it
+        claim_resp = self.client.post(
+            f"{BASE_URL}{resto_id}/claim/",
+            **auth_header(self.resto_user),
+        )
+        self.assertEqual(claim_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(claim_resp.json()["claim_status"], "PENDING")
+        self.assertEqual(claim_resp.json()["claimed_by"]["email"], self.resto_user.email)
+        self.assertIsNone(claim_resp.json()["owner"])
+
+        # Reviewer approves claim
+        approve_resp = self.client.post(
+            f"{BASE_URL}{resto_id}/approve-claim/",
+            **auth_header(self.reviewer),
+        )
+        self.assertEqual(approve_resp.status_code, status.HTTP_200_OK)
+        data = approve_resp.json()
+        self.assertEqual(data["claim_status"], "CLAIMED")
+        self.assertEqual(data["owner"]["email"], self.resto_user.email)
+        self.assertTrue(data["is_verified"])
+        self.assertTrue(data["is_claimed"])
+
+    def test_restaurant_user_claim_and_reviewer_reject_flow(self):
+        # Customer creates unclaimed restaurant
+        resp = self.client.post(
+            BASE_URL, RESTAURANT_PAYLOAD, format="json",
+            **auth_header(self.customer),
+        )
+        resto_id = resp.json()["id"]
+
+        # Restaurant User claims it
+        claim_resp = self.client.post(
+            f"{BASE_URL}{resto_id}/claim/",
+            **auth_header(self.resto_user),
+        )
+        self.assertEqual(claim_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(claim_resp.json()["claim_status"], "PENDING")
+
+        # Customer cannot reject
+        reject_cust = self.client.post(
+            f"{BASE_URL}{resto_id}/reject-claim/",
+            {"reason": "Unauthorized attempt"},
+            format="json",
+            **auth_header(self.customer),
+        )
+        self.assertEqual(reject_cust.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Reviewer rejects claim
+        reject_resp = self.client.post(
+            f"{BASE_URL}{resto_id}/reject-claim/",
+            {"reason": "Insufficient legal proof of business ownership."},
+            format="json",
+            **auth_header(self.reviewer),
+        )
+        self.assertEqual(reject_resp.status_code, status.HTTP_200_OK)
+        data = reject_resp.json()
+        self.assertEqual(data["claim_status"], "UNCLAIMED")
+        self.assertIsNone(data["claimed_by"])
+        self.assertIsNone(data["owner"])
+
+        # Second reject on now-unclaimed restaurant fails with 400
+        reject_again = self.client.post(
+            f"{BASE_URL}{resto_id}/reject-claim/",
+            **auth_header(self.reviewer),
+        )
+        self.assertEqual(reject_again.status_code, status.HTTP_400_BAD_REQUEST)
+

@@ -7,28 +7,30 @@ import { ErrorState } from '@/components/states/ErrorState'
 import { ListSkeleton } from '@/components/states/LoadingSkeleton'
 import { LinkButton } from '@/components/ui/LinkButton'
 import { useComplaints } from '@/hooks/useComplaints'
+import { useTranslation } from '@/i18n'
 
 export default function ComplaintsList() {
+  const { t } = useTranslation()
   const { data, isLoading, isError, isSuccess, refetch } = useComplaints()
 
   return (
-    <AppShell title="Complaints">
+    <AppShell title={t('complaints.list.title')}>
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-semibold text-neutral-900">Your complaints</h2>
-          <p className="mt-1 text-sm text-neutral-500">Formal complaints filed against submitted reports.</p>
+          <h2 className="text-xl font-semibold text-neutral-900">{t('complaints.list.heading')}</h2>
+          <p className="mt-1 text-sm text-neutral-500">{t('complaints.list.subtitle')}</p>
         </div>
-        <LinkButton to="/complaints/new">File a Complaint</LinkButton>
+        <LinkButton to="/complaints/new">{t('complaints.list.fileAction')}</LinkButton>
       </div>
 
       {isLoading && <ListSkeleton items={4} />}
-      {isError && <ErrorState message="We couldn't load your complaints." onRetry={() => refetch()} />}
+      {isError && <ErrorState message={t('complaints.list.loadError')} onRetry={() => refetch()} />}
       {isSuccess && data.length === 0 && (
         <EmptyState
           icon={<MessageSquare className="size-6" aria-hidden="true" />}
-          title="No complaints filed yet"
-          description="Complaints can be filed once a food safety report has been submitted for review."
-          action={<LinkButton to="/complaints/new" size="sm">File a Complaint</LinkButton>}
+          title={t('complaints.list.emptyTitle')}
+          description={t('complaints.list.emptyDescription')}
+          action={<LinkButton to="/complaints/new" size="sm">{t('complaints.list.fileAction')}</LinkButton>}
         />
       )}
       {isSuccess && data.length > 0 && (

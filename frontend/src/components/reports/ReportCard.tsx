@@ -3,15 +3,17 @@ import { ImageOff } from 'lucide-react'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
 import { formatDate } from '@/lib/format'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { FoodReport } from '@/types/report'
 
 export function ReportCard({ report }: { report: FoodReport }) {
+  const { language } = useLanguage()
   return (
     <Link
       to={`/reports/${report.id}`}
-      className="group flex gap-4 rounded-2xl border border-neutral-100 bg-white p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out hover:border-primary-300 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100">
+      <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-neutral-100">
         {report.image ? (
           <img
             src={report.image}
@@ -20,7 +22,7 @@ export function ReportCard({ report }: { report: FoodReport }) {
             className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <ImageOff className="size-6 text-neutral-300" aria-hidden="true" />
+          <ImageOff className="size-6 text-neutral-400" aria-hidden="true" />
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -28,12 +30,12 @@ export function ReportCard({ report }: { report: FoodReport }) {
           <h3 className="truncate text-sm font-semibold text-neutral-900">{report.title}</h3>
           <StatusBadge status={report.status} className="shrink-0" />
         </div>
-        <p className="mt-1 truncate text-sm text-neutral-500">
+        <p className="mt-1.5 truncate text-sm text-neutral-600">
           {report.restaurant.name} · {report.restaurant.city}
         </p>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2.5 flex items-center gap-2">
           <PriorityBadge priority={report.priority} />
-          <span className="text-xs text-neutral-400">{formatDate(report.created_at)}</span>
+          <span className="text-xs text-neutral-500">{formatDate(report.created_at, language)}</span>
         </div>
       </div>
     </Link>

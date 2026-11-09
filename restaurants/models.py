@@ -64,11 +64,36 @@ class Restaurant(models.Model):
         verbose_name="contact phone",
     )
 
+    class ClaimStatus(models.TextChoices):
+        UNCLAIMED = "UNCLAIMED", "Unclaimed"
+        PENDING = "PENDING", "Pending Approval"
+        CLAIMED = "CLAIMED", "Claimed"
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="owned_restaurants",
         verbose_name="owner",
+    )
+
+    claimed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="claimed_restaurants",
+        verbose_name="claimed by",
+        help_text="Restaurant user who has requested ownership pending review.",
+    )
+
+    claim_status = models.CharField(
+        max_length=20,
+        choices=ClaimStatus.choices,
+        default=ClaimStatus.UNCLAIMED,
+        db_index=True,
+        verbose_name="claim status",
     )
 
     is_verified = models.BooleanField(
@@ -96,7 +121,21 @@ class Restaurant(models.Model):
             models.Index(fields=["state"], name="restaurant_state_idx"),
             models.Index(fields=["is_verified"], name="restaurant_verified_idx"),
             models.Index(fields=["is_active"], name="restaurant_active_idx"),
+            models.Index(fields=["claim_status"], name="restaurant_claim_idx"),
         ]
+
+    def save(self, *args, **kwargs) -> None:
+        if self.owner_id is not None:
+            self.claim_status = self.ClaimStatus.CLAIMED
+        elif self.claimed_by_id is not None:
+            self.claim_status = self.ClaimStatus.PENDING
+        else:
+            self.claim_status = self.ClaimStatus.UNCLAIMED
+        super().save(*args, **kwargs)
+
+    @property
+    def is_claimed(self) -> bool:
+        return self.owner_id is not None
 
     def __str__(self) -> str:
         return f"{self.name} ({self.city}, {self.state})"

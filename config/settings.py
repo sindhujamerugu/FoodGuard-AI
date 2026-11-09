@@ -18,6 +18,16 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load local .env file if present (sets defaults without overriding explicit env)
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    with open(_env_file, encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 
 # ============================================================
 # SECURITY
@@ -35,7 +45,7 @@ if not DEBUG and SECRET_KEY == _INSECURE_DEFAULT_SECRET_KEY:
         "Refusing to start with the insecure development default in production."
     )
 
-_default_allowed_hosts = "127.0.0.1,localhost"
+_default_allowed_hosts = "127.0.0.1,localhost,testserver"
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.getenv("DJANGO_ALLOWED_HOSTS", _default_allowed_hosts).split(",")
@@ -120,6 +130,10 @@ AUTH_USER_MODEL = "users.User"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
+    # CORS — must be as high as possible, especially before any middleware
+    # that can generate responses such as CommonMiddleware or WhiteNoiseMiddleware.
+    "corsheaders.middleware.CorsMiddleware",
+
     # Serves STATIC_ROOT directly from the app process — no separate static
     # file host/CDN needed for this MVP's admin/DRF-browsable-API/Swagger
     # assets. Must sit immediately after SecurityMiddleware and before
@@ -127,9 +141,6 @@ MIDDLEWARE = [
     # MEDIA_URL — uploaded report images keep going through the existing
     # django.views.static.serve wiring in config/urls.py.
     "whitenoise.middleware.WhiteNoiseMiddleware",
-
-    # CORS — must be as high as possible
-    "corsheaders.middleware.CorsMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -358,18 +369,38 @@ SIMPLE_JWT = {
 # ============================================================
 # CORS
 # ============================================================
-# Comma-separated list of allowed frontend origins. Defaults preserve the
-# existing local Vite dev origin; set CORS_ALLOWED_ORIGINS in production to
-# the deployed frontend's actual origin(s), e.g.
-# "https://foodguard.vercel.app,https://www.foodguard.example".
+# Comma-separated list of allowed frontend origins. In production, set
+# CORS_ALLOWED_ORIGINS in your environment to the deployed frontend's actual
+# origin(s), e.g. "https://foodguard.vercel.app,https://www.foodguard.example".
 
-CORS_ALLOWED_ORIGINS = [
+_cors_env_origins = [
     o.strip()
-    for o in os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-    ).split(",")
+    for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
     if o.strip()
 ]
+
+# Standard local development origins for Vite frontend (ports 3000, 3001, 3002, 3003)
+CORS_LOCAL_DEV_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3003",
+]
+
+if DEBUG:
+    # In development mode, always permit standard local Vite dev origins
+    # alongside any explicitly configured origins from .env or environment variables.
+    CORS_ALLOWED_ORIGINS = list(
+        dict.fromkeys(CORS_LOCAL_DEV_ORIGINS + _cors_env_origins)
+    )
+else:
+    # In production, require explicit CORS_ALLOWED_ORIGINS from the environment
+    # (falls back to local dev origins only if no production origins are configured).
+    CORS_ALLOWED_ORIGINS = _cors_env_origins or list(CORS_LOCAL_DEV_ORIGINS)
 
 
 # ============================================================

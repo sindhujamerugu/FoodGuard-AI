@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { authApi } from '@/api/auth'
 import { authBridge } from '@/lib/authBridge'
 import { tokenStorage } from '@/lib/tokenStorage'
+import { queryClient } from '@/lib/queryClient'
 import type { LoginPayload, RegisterPayload, RegisterResponse, User } from '@/types/user'
 
 interface AuthContextValue {
@@ -11,6 +12,7 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<User>
   register: (payload: RegisterPayload) => Promise<RegisterResponse>
   logout: () => Promise<void>
+  updateUser: (updatedUser: User) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     authBridge.onAuthFailure(() => {
+      queryClient.clear()
       setUser(null)
     })
   }, [])
@@ -72,12 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     tokenStorage.clear()
+    queryClient.clear()
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((updatedUser: User) => {
+    setUser(updatedUser)
+  }, [])
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, isAuthenticated: !!user, login, register, logout }),
-    [user, isLoading, login, register, logout],
+    () => ({ user, isLoading, isAuthenticated: !!user, login, register, logout, updateUser }),
+    [user, isLoading, login, register, logout, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

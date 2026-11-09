@@ -17,4 +17,11 @@ export const queryKeys = {
   analytics: {
     summary: ['analytics', 'summary'] as const,
   },
+  escalations: {
+    all: ['escalations'] as const,
+    detail: (id: number) => ['escalations', id] as const,
+  },
+  auth: {
+    profile: ['auth', 'profile'] as const,
+  },
 }

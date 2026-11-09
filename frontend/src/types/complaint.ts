@@ -1,3 +1,4 @@
+import type { TranslationKey } from '@/i18n/en'
 import type { RestaurantMinimal } from './restaurant'
 import type { LanguageCode, UserMinimal } from './user'
 
@@ -8,6 +9,15 @@ export type ComplaintCategory =
   | 'HYGIENE'
   | 'TASTE_OR_ODOR'
   | 'OTHER'
+
+export const COMPLAINT_CATEGORY_KEYS: Record<ComplaintCategory, TranslationKey> = {
+  FOOD_QUALITY: 'category.foodQuality',
+  SPOILAGE: 'category.spoilage',
+  FOREIGN_OBJECT: 'category.foreignObject',
+  HYGIENE: 'category.hygiene',
+  TASTE_OR_ODOR: 'category.tasteOrOdor',
+  OTHER: 'category.other',
+}
 
 export const COMPLAINT_CATEGORY_LABELS: Record<ComplaintCategory, string> = {
   FOOD_QUALITY: 'Food Quality',

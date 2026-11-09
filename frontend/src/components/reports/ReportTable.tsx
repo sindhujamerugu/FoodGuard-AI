@@ -4,10 +4,12 @@ import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
 import { Reveal } from '@/components/motion/Reveal'
 import { formatDate } from '@/lib/format'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { FoodReport } from '@/types/report'
 
 export function ReportTable({ reports, showCustomer }: { reports: FoodReport[]; showCustomer?: boolean }) {
   const navigate = useNavigate()
+  const { language } = useLanguage()
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-card">
@@ -61,7 +63,7 @@ export function ReportTable({ reports, showCustomer }: { reports: FoodReport[]; 
               <td className="px-5 py-3">
                 <PriorityBadge priority={report.priority} />
               </td>
-              <td className="px-5 py-3 whitespace-nowrap text-neutral-500">{formatDate(report.created_at)}</td>
+              <td className="px-5 py-3 whitespace-nowrap text-neutral-500">{formatDate(report.created_at, language)}</td>
             </Reveal>
           ))}
         </tbody>

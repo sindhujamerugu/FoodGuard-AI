@@ -72,6 +72,15 @@ class TestLoadTrainableRecords(_TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0].label, "normal")
         self.assertEqual(records[0].item_id, "item_00001")
+        self.assertEqual(records[0].split, "train")
+
+    def test_row_preserves_test_split(self):
+        row = _row(split="test")
+        self._write_manifest([row])
+        self._write_image(row["image_path"])
+        records = load_trainable_records(self.data_root / "manifest.jsonl", self.data_root)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].split, "test")
 
     def test_review_queue_is_excluded(self):
         row = _row(

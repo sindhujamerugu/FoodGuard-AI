@@ -16,14 +16,15 @@ import { Reveal } from '@/components/motion/Reveal'
 import { useDeleteReport, useReport, useSubmitReport } from '@/hooks/useReports'
 import { useAIAnalysis, useRunAIAnalysis } from '@/hooks/useAIAnalysis'
 import { useComplaints } from '@/hooks/useComplaints'
-import { useTranslation } from '@/i18n/LanguageContext'
+import { useLanguage } from '@/i18n/LanguageContext'
+import { formatDate } from '@/lib/format'
 import { toApiError } from '@/types/errors'
 
 export default function ReportDetail() {
   const { id } = useParams<{ id: string }>()
   const reportId = Number(id)
   const navigate = useNavigate()
-  const t = useTranslation()
+  const { t, language } = useLanguage()
 
   const { data: report, isLoading, isError, refetch } = useReport(reportId)
   const analysisQuery = useAIAnalysis(reportId)
@@ -40,7 +41,7 @@ export default function ReportDetail() {
 
   if (isLoading) {
     return (
-      <AppShell title="Report">
+      <AppShell title={t('reports.detail.pageTitle')}>
         <div className="space-y-4">
           <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
@@ -50,7 +51,7 @@ export default function ReportDetail() {
 
   if (isError || !report) {
     return (
-      <AppShell title="Report">
+      <AppShell title={t('reports.detail.pageTitle')}>
         <ErrorState message={t('reports.detail.loadError')} onRetry={() => refetch()} />
       </AppShell>
     )
@@ -81,7 +82,7 @@ export default function ReportDetail() {
   }
 
   return (
-    <AppShell title="Report Details">
+    <AppShell title={t('reports.detail.pageTitle')}>
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex flex-wrap items-center gap-2">
           {isDraft && (
@@ -103,12 +104,12 @@ export default function ReportDetail() {
           {isSubmittedStatus && !linkedComplaint && (
             <LinkButton to={`/complaints/new?reportId=${report.id}`} size="sm" variant="outline">
               <MessageSquare className="size-4" aria-hidden="true" />
-              File a Complaint
+              {t('reports.detail.fileComplaint')}
             </LinkButton>
           )}
           <LinkButton to={`/reports/${report.id}/ai-analysis`} size="sm" variant="ghost">
             <Sparkles className="size-4" aria-hidden="true" />
-            Full AI Assessment
+            {t('reports.detail.fullAiAssessment')}
           </LinkButton>
         </div>
 
@@ -127,19 +128,19 @@ export default function ReportDetail() {
         <ReportOverview report={report} />
 
         <Reveal delay={80}>
-          <h3 className="mb-3 text-base font-semibold text-neutral-900">AI Assessment</h3>
+          <h3 className="mb-3 text-base font-semibold text-neutral-900">{t('reports.detail.aiAssessmentHeading')}</h3>
           {analysisQuery.isLoading && <Skeleton className="h-40 w-full rounded-2xl" />}
           {analysisQuery.isSuccess && <AIAnalysisCard analysis={analysisQuery.data} compact />}
           {analysisNotFound && (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-white p-6 text-center">
-              <p className="text-sm text-neutral-500">No AI analysis has been run for this report yet.</p>
+              <p className="text-sm text-neutral-500">{t('reports.detail.noAiAnalysis')}</p>
               {canRunAnalysis ? (
                 <Button className="mt-4" size="sm" isLoading={runAnalysis.isPending} onClick={() => runAnalysis.mutate()}>
                   <Sparkles className="size-4" aria-hidden="true" />
-                  Run AI Analysis
+                  {t('reports.detail.runAiAnalysis')}
                 </Button>
               ) : (
-                <p className="mt-2 text-xs text-neutral-400">Upload an evidence photo to enable AI analysis.</p>
+                <p className="mt-2 text-xs text-neutral-400">{t('reports.detail.uploadPhotoForAi')}</p>
               )}
               <div className="mt-4">
                 <AIDisclaimer />
@@ -147,12 +148,12 @@ export default function ReportDetail() {
             </div>
           )}
           {analysisQuery.isError && !analysisNotFound && (
-            <ErrorState message="Couldn't load AI analysis." onRetry={() => analysisQuery.refetch()} />
+            <ErrorState message={t('reports.detail.aiLoadError')} onRetry={() => analysisQuery.refetch()} />
           )}
         </Reveal>
 
         <Reveal delay={140}>
-          <h3 className="mb-3 text-base font-semibold text-neutral-900">Complaint</h3>
+          <h3 className="mb-3 text-base font-semibold text-neutral-900">{t('reports.detail.complaintHeading')}</h3>
           {linkedComplaint ? (
             <Link
               to={`/complaints/${linkedComplaint.id}`}
@@ -160,15 +161,17 @@ export default function ReportDetail() {
             >
               <div>
                 <p className="text-sm font-medium text-neutral-900">{linkedComplaint.title}</p>
-                <p className="text-xs text-neutral-500">Filed {new Date(linkedComplaint.submitted_at).toLocaleDateString()}</p>
+                <p className="text-xs text-neutral-500">
+                  {t('reports.detail.filedOn', { date: formatDate(linkedComplaint.submitted_at, language) })}
+                </p>
               </div>
               <StatusBadge status={linkedComplaint.status} />
             </Link>
           ) : (
             <p className="rounded-2xl border border-dashed border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
               {isSubmittedStatus
-                ? 'No complaint has been filed for this report yet.'
-                : 'A complaint can be filed once this report is submitted for review.'}
+                ? t('reports.detail.noComplaintYet')
+                : t('reports.detail.complaintNotice')}
             </p>
           )}
         </Reveal>

@@ -10,7 +10,10 @@ export interface Restaurant {
   pincode: string
   contact_email: string
   contact_phone: string
-  owner: UserMinimal
+  owner: UserMinimal | null
+  claimed_by?: UserMinimal | null
+  claim_status?: 'UNCLAIMED' | 'PENDING' | 'CLAIMED'
+  is_claimed?: boolean
   is_verified: boolean
   is_active: boolean
   created_at: string

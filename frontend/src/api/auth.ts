@@ -1,5 +1,13 @@
 import { http } from '@/lib/http'
-import type { LanguageCode, LoginPayload, LoginResponse, RegisterPayload, RegisterResponse, User } from '@/types/user'
+import type {
+  LanguageCode,
+  LoginPayload,
+  LoginResponse,
+  RegisterPayload,
+  RegisterResponse,
+  UpdateProfilePayload,
+  User,
+} from '@/types/user'
 
 export const authApi = {
   register: (payload: RegisterPayload) =>
@@ -9,6 +17,10 @@ export const authApi = {
     http.post<LoginResponse>('/auth/login/', payload).then((r) => r.data),
 
   profile: () => http.get<User>('/auth/profile/').then((r) => r.data),
+
+  /** Updates permitted customer profile fields (first_name, last_name, phone, preferred_language). */
+  updateProfile: (payload: UpdateProfilePayload) =>
+    http.patch<User>('/auth/profile/', payload).then((r) => r.data),
 
   /** Persists the language selector's choice server-side (so it follows
    * the user across devices/sessions) — updates only preferred_language. */

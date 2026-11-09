@@ -3,10 +3,10 @@ import { restaurantsApi } from '@/api/restaurants'
 import { queryKeys } from '@/lib/queryKeys'
 import type { RestaurantCreatePayload, RestaurantUpdatePayload } from '@/types/restaurant'
 
-export function useRestaurants() {
+export function useRestaurants(search?: string) {
   return useQuery({
-    queryKey: queryKeys.restaurants.all,
-    queryFn: restaurantsApi.list,
+    queryKey: search ? [...queryKeys.restaurants.all, search] : queryKeys.restaurants.all,
+    queryFn: () => restaurantsApi.list(search),
   })
 }
 
@@ -48,3 +48,26 @@ export function useDeleteRestaurant() {
     },
   })
 }
+
+export function useClaimRestaurant() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => restaurantsApi.claim(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.restaurants.detail(updated.id), updated)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.restaurants.all })
+    },
+  })
+}
+
+export function useApproveClaim() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => restaurantsApi.approveClaim(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.restaurants.detail(updated.id), updated)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.restaurants.all })
+    },
+  })
+}
+

@@ -14,7 +14,7 @@ from src.ml.splitting import (
 )
 
 
-def _record(item_id: str, image_id: str, label: str = "normal", session_id: str = "session_a") -> ManifestRecord:
+def _record(item_id: str, image_id: str, label: str = "normal", session_id: str = "session_a", split: str = "train") -> ManifestRecord:
     return ManifestRecord(
         image_id=image_id,
         image_path=Path(f"/fake/{image_id}.jpg"),
@@ -22,6 +22,7 @@ def _record(item_id: str, image_id: str, label: str = "normal", session_id: str 
         session_id=session_id,
         label=label,
         food_category="fruit",
+        split=split,
     )
 
 
@@ -33,6 +34,22 @@ class TestComputeSplit(unittest.TestCase):
     def test_ratios_must_sum_to_one(self):
         with self.assertRaises(ValueError):
             compute_split([], 0.5, 0.4, 0.4, seed=1)
+
+    def test_fixed_test_split_is_preserved(self):
+        dev = [_record(f"item_dev_{i}", f"img_dev_{i}", split="train") for i in range(10)]
+        test_recs = [_record(f"item_test_{i}", f"img_test_{i}", split="test") for i in range(5)]
+        records = dev + test_recs
+
+        assignment = compute_split(records, 0.7, 0.15, 0.15, seed=42)
+        assert_no_item_leakage(records, assignment)
+        by_split = split_records(records, assignment)
+
+        self.assertEqual(len(by_split["test"]), 5)
+        test_ids = {r.image_id for r in by_split["test"]}
+        self.assertEqual(test_ids, {f"img_test_{i}" for i in range(5)})
+
+        total_dev = len(by_split["train"]) + len(by_split["validation"])
+        self.assertEqual(total_dev, 10)
 
     def test_every_item_gets_exactly_one_split(self):
         records = _many_items(20, "normal", "item")

@@ -436,63 +436,166 @@ class TestLogout(APITestCase):
 
 
 # ======================================================================
-# 8. Update preferred language (PATCH /profile/)
+# 8. Profile Update (PATCH /profile/)
 # ======================================================================
 
-class TestUpdatePreferredLanguage(APITestCase):
-    """Focused tests for the multilingual-selector persistence endpoint
-    added to support docs/... frontend language selector — PATCH accepts
-    only preferred_language, nothing else on the user record."""
+class TestProfileUpdate(APITestCase):
+    """
+    Tests for customer profile updates (PATCH /api/v1/auth/profile/).
+    - Permitted fields: first_name, last_name, phone, preferred_language.
+    - Explicit rejection of unauthorized fields (email, role, id, is_active).
+    - Validation of phone format, language choices, and field lengths.
+    - Partial update preservation of untouched fields.
+    """
 
     def setUp(self):
-        self.user = make_user(preferred_language=User.Language.ENGLISH)
+        self.user = make_user(
+            first_name="OriginalFirst",
+            last_name="OriginalLast",
+            phone="9876543210",
+            preferred_language=User.Language.ENGLISH,
+        )
         refresh = RefreshToken.for_user(self.user)
         self.access_token = str(refresh.access_token)
 
     def _auth(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.access_token}")
 
-    def test_requires_authentication(self):
-        response = self.client.patch(PROFILE_URL, {"preferred_language": "te"}, format="json")
+    def test_unauthorized_requests_rejected(self):
+        """PATCH without authentication must return 401."""
+        response = self.client.patch(
+            PROFILE_URL,
+            {"first_name": "Unauthenticated"},
+            format="json",
+        )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_updates_to_telugu(self):
+    def test_authenticated_customer_updates_permitted_fields(self):
+        """Authenticated customer can update first_name, last_name, phone, and preferred_language."""
         self._auth()
-        response = self.client.patch(PROFILE_URL, {"preferred_language": "te"}, format="json")
+        payload = {
+            "first_name": "Aarav",
+            "last_name": "Sharma",
+            "phone": "+91 9123456789",
+            "preferred_language": "te",
+        }
+        response = self.client.patch(PROFILE_URL, payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["preferred_language"], "te")
+        data = response.json()
+        self.assertEqual(data["first_name"], "Aarav")
+        self.assertEqual(data["last_name"], "Sharma")
+        self.assertEqual(data["phone"], "+91 9123456789")
+        self.assertEqual(data["preferred_language"], "te")
+
         self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Aarav")
+        self.assertEqual(self.user.last_name, "Sharma")
+        self.assertEqual(self.user.phone, "+91 9123456789")
         self.assertEqual(self.user.preferred_language, "te")
 
-    def test_updates_to_hindi(self):
+    def test_preferred_language_validation(self):
+        """Valid language codes succeed; invalid codes return 400."""
         self._auth()
-        response = self.client.patch(PROFILE_URL, {"preferred_language": "hi"}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["preferred_language"], "hi")
+        for code in ["en", "te", "hi", "ta", "kn", "mr"]:
+            response = self.client.patch(
+                PROFILE_URL, {"preferred_language": code}, format="json"
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_200_OK,
+                msg=f"Language code '{code}' should be accepted.",
+            )
 
-    def test_rejects_unsupported_language_code(self):
-        self._auth()
-        response = self.client.patch(PROFILE_URL, {"preferred_language": "fr"}, format="json")
+        # Invalid language code
+        response = self.client.patch(
+            PROFILE_URL, {"preferred_language": "invalid-lang"}, format="json"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.preferred_language, User.Language.ENGLISH)
+        self.assertIn("preferred_language", response.json())
 
-    def test_rejects_missing_field(self):
+    def test_invalid_phone_input_rejected(self):
+        """Invalid phone numbers return 400; valid and empty phones are accepted."""
+        self._auth()
+        invalid_phones = [
+            "123",              # Too short
+            "phone123456",      # Contains letters
+            "++91-12345",       # Invalid pattern
+            "123456789012345678901",  # Exceeds max length
+        ]
+        for bad_phone in invalid_phones:
+            response = self.client.patch(
+                PROFILE_URL, {"phone": bad_phone}, format="json"
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                msg=f"Phone '{bad_phone}' should be rejected.",
+            )
+
+        # Clearing phone (empty string) is permitted
+        response = self.client.patch(PROFILE_URL, {"phone": ""}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["phone"], "")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.phone, "")
+
+    def test_email_and_role_cannot_be_modified(self):
+        """Attempting to modify read-only or unauthorized fields returns 400 and preserves DB state."""
+        self._auth()
+        unauthorized_payloads = [
+            {"email": "hacked@example.com"},
+            {"role": User.Role.ADMIN},
+            {"role": "REVIEWER"},
+            {"is_active": False},
+            {"id": 999},
+            {"date_joined": "2020-01-01T00:00:00Z"},
+            {"preferred_language": "te", "role": User.Role.ADMIN, "email": "hijacked@example.com"},
+        ]
+        for payload in unauthorized_payloads:
+            response = self.client.patch(PROFILE_URL, payload, format="json")
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                msg=f"Payload {payload} should be rejected with 400.",
+            )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "test@example.com")
+        self.assertEqual(self.user.role, User.Role.CUSTOMER)
+        self.assertTrue(self.user.is_active)
+
+    def test_partial_updates_preserve_unchanged_fields(self):
+        """Updating only a subset of fields preserves all unchanged fields."""
+        self._auth()
+        response = self.client.patch(
+            PROFILE_URL, {"first_name": "UpdatedOnlyFirst"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["first_name"], "UpdatedOnlyFirst")
+        self.assertEqual(data["last_name"], "OriginalLast")
+        self.assertEqual(data["phone"], "9876543210")
+        self.assertEqual(data["preferred_language"], "en")
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "UpdatedOnlyFirst")
+        self.assertEqual(self.user.last_name, "OriginalLast")
+        self.assertEqual(self.user.phone, "9876543210")
+        self.assertEqual(self.user.preferred_language, "en")
+
+    def test_blank_names_rejected(self):
+        """Empty or whitespace-only first_name and last_name return 400."""
+        self._auth()
+        for field in ["first_name", "last_name"]:
+            response = self.client.patch(PROFILE_URL, {field: "   "}, format="json")
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                msg=f"Blank {field} should be rejected.",
+            )
+
+    def test_empty_payload_rejected(self):
+        """Empty request payload returns 400."""
         self._auth()
         response = self.client.patch(PROFILE_URL, {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_does_not_allow_changing_other_fields(self):
-        """PATCH /profile/ must only ever touch preferred_language — role
-        escalation or identity tampering via this endpoint must not work."""
-        self._auth()
-        response = self.client.patch(
-            PROFILE_URL,
-            {"preferred_language": "te", "role": User.Role.ADMIN, "email": "hijacked@example.com"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.role, User.Role.CUSTOMER)
-        self.assertEqual(self.user.email, "test@example.com")
-        self.assertEqual(self.user.preferred_language, "te")

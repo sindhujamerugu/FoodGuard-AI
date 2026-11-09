@@ -49,3 +49,16 @@ export const restaurantSchema = z.object({
     .or(z.literal('')),
 })
 export type RestaurantFormValues = z.infer<typeof restaurantSchema>
+
+export const profileSchema = z.object({
+  first_name: z.string().trim().min(1, 'First name is required.').max(150),
+  last_name: z.string().trim().min(1, 'Last name is required.').max(150),
+  phone: z
+    .string()
+    .trim()
+    .regex(phoneRegex, 'Enter a valid phone number (7–20 digits).')
+    .optional()
+    .or(z.literal('')),
+  preferred_language: z.enum(['en', 'te', 'hi', 'ta', 'kn', 'mr']),
+})
+export type ProfileFormValues = z.infer<typeof profileSchema>

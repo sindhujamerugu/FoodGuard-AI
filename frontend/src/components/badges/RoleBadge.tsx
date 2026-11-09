@@ -1,4 +1,6 @@
 import { cn } from '@/lib/cn'
+import { useTranslation } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import type { UserRole } from '@/types/user'
 
 const styles: Record<UserRole, string> = {
@@ -8,14 +10,17 @@ const styles: Record<UserRole, string> = {
   ADMIN: 'bg-neutral-800 text-white',
 }
 
-const labels: Record<UserRole, string> = {
-  CUSTOMER: 'Customer',
-  RESTAURANT_USER: 'Restaurant',
-  REVIEWER: 'Reviewer',
-  ADMIN: 'Admin',
+const roleKeys: Record<UserRole, TranslationKey> = {
+  CUSTOMER: 'role.customer',
+  RESTAURANT_USER: 'role.restaurant',
+  REVIEWER: 'role.reviewer',
+  ADMIN: 'role.admin',
 }
 
 export function RoleBadge({ role, className }: { role: UserRole; className?: string }) {
+  const t = useTranslation()
+  const key = roleKeys[role]
+
   return (
     <span
       className={cn(
@@ -24,7 +29,8 @@ export function RoleBadge({ role, className }: { role: UserRole; className?: str
         className,
       )}
     >
-      {labels[role]}
+      {key ? t(key) : role}
     </span>
   )
 }
+

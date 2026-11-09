@@ -6,6 +6,7 @@ interface StatCardProps {
   value: number | string
   icon: LucideIcon
   tone?: 'primary' | 'warning' | 'success' | 'danger' | 'neutral'
+  prominent?: boolean
 }
 
 const toneStyles: Record<NonNullable<StatCardProps['tone']>, string> = {
@@ -16,26 +17,42 @@ const toneStyles: Record<NonNullable<StatCardProps['tone']>, string> = {
   neutral: 'bg-neutral-100 text-neutral-600',
 }
 
-export function StatCard({ label, value, icon: Icon, tone = 'primary' }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, tone = 'primary', prominent = false }: StatCardProps) {
   return (
-    <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-neutral-100 bg-white p-5 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <div
+      className={cn(
+        'group relative flex items-center gap-4 overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+        prominent
+          ? 'border-primary-200 bg-gradient-to-br from-primary-50 to-white p-6'
+          : 'border-neutral-200 bg-white p-4',
+      )}
+    >
       <div
         className={cn(
-          'pointer-events-none absolute -right-4 -top-4 size-20 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+          'pointer-events-none absolute -right-4 -top-4 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+          prominent ? 'size-24' : 'size-20',
           toneStyles[tone],
         )}
       />
       <div
         className={cn(
-          'relative flex size-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:-translate-y-0.5',
+          'relative flex shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:-translate-y-0.5',
+          prominent ? 'size-12' : 'size-11',
           toneStyles[tone],
         )}
       >
-        <Icon className="size-5" aria-hidden="true" />
+        <Icon className={cn('aria-hidden="true"', prominent ? 'size-6' : 'size-5')} />
       </div>
       <div className="relative">
-        <p className="text-2xl font-semibold text-neutral-900">{value}</p>
-        <p className="text-sm text-neutral-500">{label}</p>
+        <p
+          className={cn(
+            'font-semibold text-neutral-900',
+            prominent ? 'text-3xl' : 'text-2xl',
+          )}
+        >
+          {value}
+        </p>
+        <p className={cn('text-neutral-600', prominent ? 'mt-1 text-sm' : 'text-sm')}>{label}</p>
       </div>
     </div>
   )

@@ -11,6 +11,15 @@ export const LANGUAGE_LABELS: Record<LanguageCode, string> = {
   mr: 'Marathi',
 }
 
+export const NATIVE_LANGUAGE_LABELS: Record<LanguageCode, string> = {
+  en: 'English',
+  te: 'తెలుగు',
+  hi: 'हिन्दी',
+  ta: 'தமிழ்',
+  kn: 'ಕನ್ನಡ',
+  mr: 'मराठी',
+}
+
 /** Full profile shape returned by GET /api/v1/auth/profile/ */
 export interface User {
   id: number
@@ -40,6 +49,13 @@ export interface RegisterPayload {
   password: string
   first_name: string
   last_name: string
+  phone?: string
+  preferred_language?: LanguageCode
+}
+
+export interface UpdateProfilePayload {
+  first_name?: string
+  last_name?: string
   phone?: string
   preferred_language?: LanguageCode
 }

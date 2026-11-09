@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
-import { COMPLAINT_CATEGORY_LABELS } from '@/types/complaint'
+import { COMPLAINT_CATEGORY_KEYS } from '@/types/complaint'
 import { formatDate } from '@/lib/format'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { Complaint } from '@/types/complaint'
 
 export function ComplaintCard({ complaint }: { complaint: Complaint }) {
+  const { language, t } = useLanguage()
+  const categoryKey = COMPLAINT_CATEGORY_KEYS[complaint.category]
+
   return (
     <Link
       to={`/complaints/${complaint.id}`}
@@ -16,12 +20,13 @@ export function ComplaintCard({ complaint }: { complaint: Complaint }) {
         <StatusBadge status={complaint.status} className="shrink-0" />
       </div>
       <p className="truncate text-sm text-neutral-500">
-        {complaint.restaurant.name} · {COMPLAINT_CATEGORY_LABELS[complaint.category]}
+        {complaint.restaurant.name} · {categoryKey ? t(categoryKey) : complaint.category}
       </p>
       <div className="flex items-center gap-2">
         <PriorityBadge priority={complaint.priority} />
-        <span className="text-xs text-neutral-400">{formatDate(complaint.submitted_at)}</span>
+        <span className="text-xs text-neutral-400">{formatDate(complaint.submitted_at, language)}</span>
       </div>
     </Link>
   )
 }
+

@@ -11,10 +11,12 @@ import { useReport } from '@/hooks/useReports'
 import { useAIAnalysis, useRunAIAnalysis } from '@/hooks/useAIAnalysis'
 import { toApiError } from '@/types/errors'
 import { useState } from 'react'
+import { useTranslation } from '@/i18n'
 
 export default function ReportAIAnalysis() {
   const { id } = useParams<{ id: string }>()
   const reportId = Number(id)
+  const { t } = useTranslation()
 
   const reportQuery = useReport(reportId)
   const analysisQuery = useAIAnalysis(reportId)
@@ -34,11 +36,11 @@ export default function ReportAIAnalysis() {
   }
 
   return (
-    <AppShell title="AI Assessment">
+    <AppShell title={t('ai.assessment.title')}>
       <div className="mx-auto max-w-2xl space-y-5">
         <Link to={`/reports/${reportId}`} className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800">
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to report
+          {t('ai.assessment.backToReport')}
         </Link>
 
         {reportQuery.isLoading && <Skeleton className="h-8 w-1/2" />}
@@ -62,7 +64,7 @@ export default function ReportAIAnalysis() {
             <AIAnalysisCard analysis={analysisQuery.data} />
             <Button variant="outline" isLoading={runAnalysis.isPending} onClick={handleRun}>
               <RefreshCw className="size-4" aria-hidden="true" />
-              Re-run Analysis
+              {t('ai.assessment.rerunAnalysis')}
             </Button>
           </>
         )}
@@ -72,17 +74,17 @@ export default function ReportAIAnalysis() {
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">
               <Sparkles className="size-6" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-semibold text-neutral-900">No assessment yet</h3>
+            <h3 className="text-base font-semibold text-neutral-900">{t('ai.assessment.noAssessmentYet')}</h3>
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-neutral-500">
-              Run a preliminary AI visual assessment on this report's evidence photo.
+              {t('ai.assessment.noAssessmentDesc')}
             </p>
             {report?.image ? (
               <Button className="mt-5" isLoading={runAnalysis.isPending} onClick={handleRun}>
                 <Sparkles className="size-4" aria-hidden="true" />
-                Run AI Analysis
+                {t('ai.assessment.runAnalysis')}
               </Button>
             ) : (
-              <p className="mt-4 text-xs text-neutral-400">This report has no evidence photo attached yet.</p>
+              <p className="mt-4 text-xs text-neutral-400">{t('ai.assessment.noPhotoAttached')}</p>
             )}
             <div className="mx-auto mt-6 max-w-md">
               <AIDisclaimer />
@@ -91,7 +93,7 @@ export default function ReportAIAnalysis() {
         )}
 
         {analysisQuery.isError && !analysisNotFound && (
-          <ErrorState message="Couldn't load AI analysis." onRetry={() => analysisQuery.refetch()} />
+          <ErrorState message={t('ai.assessment.loadError')} onRetry={() => analysisQuery.refetch()} />
         )}
       </div>
     </AppShell>

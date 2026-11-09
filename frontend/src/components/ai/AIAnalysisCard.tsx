@@ -6,8 +6,10 @@ import { AIDisclaimer } from './AIDisclaimer'
 import { Reveal } from '@/components/motion/Reveal'
 import { formatDateTime } from '@/lib/format'
 import type { AIAnalysis } from '@/types/aiAnalysis'
+import { useTranslation } from '@/i18n'
 
 export function AIAnalysisCard({ analysis, compact }: { analysis: AIAnalysis; compact?: boolean }) {
+  const { t, language } = useTranslation()
   const isMock = analysis.model_name.includes('mock')
 
   return (
@@ -15,11 +17,11 @@ export function AIAnalysisCard({ analysis, compact }: { analysis: AIAnalysis; co
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary-600" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-neutral-900">AI Visual Assessment</h3>
+          <h3 className="text-sm font-semibold text-neutral-900">{t('ai.card.title')}</h3>
         </div>
         {isMock && (
           <span className="rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white">
-            Mock Mode
+            {t('ai.card.mockMode')}
           </span>
         )}
       </div>
@@ -40,8 +42,8 @@ export function AIAnalysisCard({ analysis, compact }: { analysis: AIAnalysis; co
 
         {!compact && (
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-neutral-400">
-            <span>Model: {analysis.model_name} v{analysis.model_version}</span>
-            <span>Analyzed: {formatDateTime(analysis.analyzed_at)}</span>
+            <span>{t('ai.card.model')}: {analysis.model_name} v{analysis.model_version}</span>
+            <span>{t('ai.card.analyzed')}: {formatDateTime(analysis.analyzed_at, language)}</span>
           </div>
         )}
 

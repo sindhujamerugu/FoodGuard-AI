@@ -1,8 +1,13 @@
+import re
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from users.models import User
+
+# Phone: optional leading +, then 7–20 digits, optional spaces/dashes.
+_PHONE_RE = re.compile(r"^\+?[\d\s\-]{7,20}$")
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -102,6 +107,92 @@ class UserResponseSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Validates and applies customer profile updates.
+    Permits updating only: first_name, last_name, phone, preferred_language.
+    Rejects unauthorized / read-only fields explicitly.
+    """
+
+    ALLOWED_FIELDS = {"first_name", "last_name", "phone", "preferred_language"}
+
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=False)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=False)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    preferred_language = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            "first_name",
+            "last_name",
+            "phone",
+            "preferred_language",
+        ]
+
+    def validate_first_name(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("First name cannot be blank.")
+        if len(cleaned) > 150:
+            raise serializers.ValidationError("First name cannot exceed 150 characters.")
+        return cleaned
+
+    def validate_last_name(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("Last name cannot be blank.")
+        if len(cleaned) > 150:
+            raise serializers.ValidationError("Last name cannot exceed 150 characters.")
+        return cleaned
+
+    def validate_phone(self, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned and not _PHONE_RE.match(cleaned):
+            raise serializers.ValidationError(
+                "Enter a valid phone number (7–20 digits, optional +/spaces/dashes)."
+            )
+        if len(cleaned) > 20:
+            raise serializers.ValidationError("Phone number cannot exceed 20 characters.")
+        return cleaned
+
+    def validate_preferred_language(self, value: str) -> str:
+        valid_codes = [lang[0] for lang in User.Language.choices]
+        if value not in valid_codes:
+            raise serializers.ValidationError(
+                f"'{value}' is not a supported language. "
+                f"Choose from: {', '.join(valid_codes)}."
+            )
+        return value
+
+    def validate(self, attrs: dict) -> dict:
+        if hasattr(self, "initial_data") and isinstance(self.initial_data, dict):
+            extra_fields = set(self.initial_data.keys()) - self.ALLOWED_FIELDS
+            if extra_fields:
+                errors = {
+                    field: [f"Field '{field}' cannot be updated."]
+                    for field in sorted(extra_fields)
+                }
+                raise serializers.ValidationError(errors)
+
+        if not attrs:
+            raise serializers.ValidationError("At least one field must be provided to update.")
+
+        return attrs
+
+    def update(self, instance: User, validated_data: dict) -> User:
+        update_fields = []
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+            update_fields.append(field)
+
+        if update_fields:
+            update_fields.append("updated_at")
+            instance.save(update_fields=update_fields)
+
+        return instance
 
 
 class UpdatePreferredLanguageSerializer(serializers.Serializer):

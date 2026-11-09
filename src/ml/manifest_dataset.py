@@ -41,6 +41,7 @@ class ManifestRecord:
     session_id: str
     label: str
     food_category: str
+    split: str = "train"
 
 
 def load_trainable_records(manifest_path: Path, data_root: Path) -> list[ManifestRecord]:
@@ -114,6 +115,7 @@ def load_trainable_records(manifest_path: Path, data_root: Path) -> list[Manifes
                 session_id=row["session_id"],
                 label=label,
                 food_category=row["food_category"],
+                split=split if split else "train",
             )
         )
 

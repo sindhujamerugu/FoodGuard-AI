@@ -27,10 +27,13 @@ class OwnerMinimalSerializer(serializers.ModelSerializer):
 class RestaurantReadSerializer(serializers.ModelSerializer):
     """
     Full read-only representation returned to all authenticated callers.
-    Owner is embedded as a minimal nested object.
+    Owner is embedded as a minimal nested object (or null if unclaimed).
     """
 
-    owner = OwnerMinimalSerializer(read_only=True)
+    owner = OwnerMinimalSerializer(read_only=True, allow_null=True)
+    claimed_by = OwnerMinimalSerializer(read_only=True, allow_null=True)
+    is_claimed = serializers.BooleanField(read_only=True)
+    claim_status = serializers.CharField(read_only=True)
 
     class Meta:
         model = Restaurant
@@ -45,6 +48,9 @@ class RestaurantReadSerializer(serializers.ModelSerializer):
             "contact_email",
             "contact_phone",
             "owner",
+            "claimed_by",
+            "claim_status",
+            "is_claimed",
             "is_verified",
             "is_active",
             "created_at",
@@ -57,10 +63,15 @@ class RestaurantCreateSerializer(serializers.ModelSerializer):
     """
     Used for POST /api/v1/restaurants/
 
-    - owner is never accepted from the client; it is injected by the view
-      from request.user.
-    - is_verified is never accepted from the client.
+    - owner is never accepted from the client.
+    - RESTAURANT_USER/ADMIN: assigned as owner.
+    - CUSTOMER: created as unclaimed (owner=None, is_verified=False, is_active=True).
     """
+
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    contact_email = serializers.EmailField(required=False, allow_blank=True, default="")
+    contact_phone = serializers.CharField(required=False, allow_blank=True, default="")
+    is_active = serializers.BooleanField(required=False, default=True)
 
     class Meta:
         model = Restaurant
@@ -104,20 +115,33 @@ class RestaurantCreateSerializer(serializers.ModelSerializer):
         return cleaned
 
     def validate_contact_phone(self, value: str) -> str:
-        if value and not _PHONE_RE.match(value.strip()):
+        cleaned = value.strip() if value else ""
+        if cleaned and not _PHONE_RE.match(cleaned):
             raise serializers.ValidationError(
                 "Enter a valid phone number (7–20 digits, optional +/spaces/dashes)."
             )
-        return value.strip()
+        return cleaned
 
     def validate_contact_email(self, value: str) -> str:
-        # EmailField already validates format; just strip whitespace.
-        return value.strip()
+        return value.strip() if value else ""
 
     def create(self, validated_data: dict) -> Restaurant:
-        # owner is injected by the view — never from client payload
-        owner = self.context["request"].user
-        return Restaurant.objects.create(owner=owner, **validated_data)
+        request_user = self.context["request"].user
+        if request_user.role == User.Role.RESTAURANT_USER:
+            owner = request_user
+        elif request_user.role == User.Role.ADMIN:
+            owner = request_user
+        else:
+            # Customers create unclaimed restaurants
+            owner = None
+
+        is_active = validated_data.pop("is_active", True)
+        return Restaurant.objects.create(
+            owner=owner,
+            is_verified=False,
+            is_active=is_active,
+            **validated_data,
+        )
 
 
 class RestaurantUpdateSerializer(serializers.ModelSerializer):

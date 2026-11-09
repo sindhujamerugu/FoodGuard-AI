@@ -90,3 +90,23 @@ Each entry records:
 | **local_path** | `data/raw/fssai/` |
 | **model_usage** | Regulatory context layer — risk scoring guidance, reviewer reference material |
 | **notes** | FSSAI is a knowledge reference, not a training dataset. See `fssai_sources.md`. |
+
+---
+
+## Dataset E — MeatScan
+
+| Field | Value |
+|---|---|
+| **name** | MeatScan: An image dataset for machine learning-based classification of fresh and spoiled cow meat |
+| **type** | `image_quality` |
+| **purpose** | Real-world meat spoilage and freshness visual assessment. Provides authentic, high-resolution training and validation samples captured in realistic environments (open-air markets, butcher shops, cold storage facilities in Ghana) to ground the `spoilage_indicator` and `normal` classes for meat. |
+| **source** | Kwame Nkrumah University of Science and Technology (KNUST), Kumasi, Ghana (Gyening et al., 2025; Elsevier *Data in Brief*) |
+| **source_url** | https://zenodo.org/records/16764338 (DOI: 10.5281/zenodo.16764338) |
+| **access_status** | `public_download` — freely downloadable archive on Zenodo. |
+| **license_status** | Creative Commons Attribution 4.0 International (CC BY 4.0) — verified commercial-use permissible. |
+| **image_count** | 11,000 total images (5,627 Fresh, 5,373 Spoiled) |
+| **archive_size** | 25.4 GB (`MeatScan_Dataset.rar`) |
+| **local_path** | `data/raw/food_quality/licensed_public/meatscan/` |
+| **model_usage** | Primary raw meat training and validation data for `spoilage_indicator` and `normal`. |
+| **notes** | Binary fresh-vs-spoiled cow meat dataset. Fresh maps to `normal` (step `3_normal_appearance`); Spoiled maps to `spoilage_indicator` (step `2_deterioration_no_growth`). **Do NOT map any MeatScan images to `mold_like_growth`**. See `docs/datasets/meatscan_acquisition.md`. |
+

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { ImagePlus, UploadCloud, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useTranslation } from '@/i18n/LanguageContext'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 const MAX_BYTES = 5 * 1024 * 1024
@@ -20,10 +21,12 @@ export function ImageUploader({
   file,
   onChange,
   existingImageUrl,
-  label = 'Evidence photo',
+  label,
   required,
   hint,
 }: ImageUploaderProps) {
+  const t = useTranslation()
+  const displayLabel = label ?? t('uploader.label')
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -34,24 +37,24 @@ export function ImageUploader({
     (candidate: File | undefined | null) => {
       if (!candidate) return
       if (!ALLOWED_TYPES.includes(candidate.type)) {
-        setError('Only JPEG, JPG, and PNG images are allowed.')
+        setError(t('uploader.invalidType'))
         return
       }
       if (candidate.size > MAX_BYTES) {
-        setError(`Image is ${(candidate.size / (1024 * 1024)).toFixed(1)} MB — the limit is 5 MB.`)
+        setError(t('uploader.tooLarge', { size: (candidate.size / (1024 * 1024)).toFixed(1) }))
         return
       }
       setError(null)
       onChange(candidate)
     },
-    [onChange],
+    [onChange, t],
   )
 
   return (
     <div className="flex flex-col gap-1.5">
-      {label && (
+      {displayLabel && (
         <span className="text-sm font-medium text-neutral-700">
-          {label}
+          {displayLabel}
           {required && <span className="text-danger-600"> *</span>}
         </span>
       )}
@@ -60,7 +63,7 @@ export function ImageUploader({
         <div className="group relative w-full max-w-xs overflow-hidden rounded-xl border border-neutral-200 animate-reveal-up">
           <img
             src={previewUrl}
-            alt="Evidence preview"
+            alt={t('uploader.previewAlt')}
             className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <button
@@ -70,7 +73,7 @@ export function ImageUploader({
               setError(null)
               if (inputRef.current) inputRef.current.value = ''
             }}
-            aria-label="Remove image"
+            aria-label={t('uploader.removeImage')}
             className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-neutral-900/70 text-white transition-transform duration-200 hover:scale-110 hover:bg-neutral-900"
           >
             <X className="size-4" aria-hidden="true" />
@@ -108,9 +111,9 @@ export function ImageUploader({
             <ImagePlus className="size-8 text-neutral-400" aria-hidden="true" />
           )}
           <p className="text-sm font-medium text-neutral-700">
-            Drag &amp; drop a photo, or <span className="text-primary-700 underline">browse</span>
+            {t('uploader.dragDropText')} <span className="text-primary-700 underline">{t('uploader.browse')}</span>
           </p>
-          <p className="text-xs text-neutral-400">JPEG or PNG, up to 5 MB</p>
+          <p className="text-xs text-neutral-400">{t('uploader.formatHint')}</p>
         </label>
       )}
 

@@ -155,14 +155,72 @@ and reviewer-guidance systems are built.
 
 ---
 
+## Dataset E — MeatScan (Phase 2.1)
+
+### When to Download
+
+Download MeatScan when:
+- Adequate storage is available (dataset archive is 25.4 GB, extracted size is ~30 GB; ensure $\ge 60$ GB free)
+- Starting the raw meat spoilage feature training pipeline
+- The CC BY 4.0 license terms have been reviewed
+
+### Download Steps
+
+```bash
+# Step 1 — Create target raw directory
+mkdir -p data/raw/food_quality/licensed_public/meatscan
+
+# Step 2 — Download the archive from official Zenodo repository with resume
+curl -L -C - -o data/raw/food_quality/licensed_public/meatscan/MeatScan_Dataset.rar \
+    "https://zenodo.org/records/16764338/files/MeatScan_Dataset.rar?download=1"
+
+# Step 3 — Extract archive
+unrar x data/raw/food_quality/licensed_public/meatscan/MeatScan_Dataset.rar \
+    data/raw/food_quality/licensed_public/meatscan/
+
+# Step 4 — Inspect and run dry-run manifest ingestion
+python -m src.data.dataset_tools.ingest_public_dataset \
+    --dataset-type meatscan \
+    --input-dir data/raw/food_quality/licensed_public/meatscan/MeatScan_Dataset \
+    --license "CC BY 4.0" \
+    --dry-run
+
+# Step 5 — Validate manifest
+python -m src.data.dataset_tools.validate_manifest data/manifests/food_quality/manifest.jsonl
+```
+
+### Expected Post-Extraction Structure
+
+```
+data/raw/food_quality/licensed_public/meatscan/
+├── MeatScan_Dataset.rar
+└── MeatScan_Dataset/
+    ├── Fresh/               (5,627 images -> label: normal)
+    └── Spoiled/             (5,373 images -> label: spoilage_indicator)
+```
+
+### Validation Checks After Download
+
+| Check | Expected |
+|---|---|
+| Archive size | 25.4 GB |
+| Top-level directory exists | `data/raw/food_quality/licensed_public/meatscan/MeatScan_Dataset/` |
+| Subdirectories present | `Fresh/` and `Spoiled/` |
+| Image count | 11,000 total (5,627 Fresh, 5,373 Spoiled) |
+| Image format | `.jpg` / `.jpeg` |
+| Label mapping | Fresh -> `normal`; Spoiled -> `spoilage_indicator`; Mold -> None |
+
+---
+
 ## Git Safety Reminder
 
 The `.gitignore` file is configured to exclude:
 - All image files under `data/`
-- All archive formats (`.tar.gz`, `.zip`, etc.)
+- All archive formats (`.tar.gz`, `.zip`, `.rar`, etc.)
 - All ML model binary files (`.pt`, `.h5`, `.onnx`, etc.)
 - All large data files (`.csv`, `.jsonl`, `.parquet`, etc.) under `data/`
 
 `.gitkeep` files mark empty directories and ARE committed.
 Documentation under `docs/` IS committed.
 Source code under `src/` IS committed.
+

@@ -5,16 +5,20 @@ import { useForm } from 'react-hook-form'
 import { AppShell } from '@/components/layout/AppShell'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
-import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { ImageUploader } from '@/components/upload/ImageUploader'
-import { ErrorState } from '@/components/states/ErrorState'
-import { Skeleton } from '@/components/states/LoadingSkeleton'
-import { useRestaurants } from '@/hooks/useRestaurants'
+import { RestaurantSearchSelect } from '@/components/restaurants/RestaurantSearchSelect'
 import { useCreateReport, useUpdateReport } from '@/hooks/useReports'
 import { reportSchema, type ReportFormValues } from '@/lib/schemas'
+import { useTranslation, type TranslationKey } from '@/i18n/LanguageContext'
 import { toApiError } from '@/types/errors'
 import type { FoodReport } from '@/types/report'
+
+const VALIDATION_ERROR_KEYS: Record<string, TranslationKey> = {
+  'Title is required.': 'validation.titleRequired',
+  'Description is required.': 'validation.descriptionRequired',
+  'Select a restaurant.': 'validation.selectRestaurant',
+}
 
 interface ReportFormProps {
   mode: 'create' | 'edit'
@@ -23,7 +27,7 @@ interface ReportFormProps {
 
 export function ReportForm({ mode, existingReport }: ReportFormProps) {
   const navigate = useNavigate()
-  const restaurantsQuery = useRestaurants()
+  const t = useTranslation()
   const createReport = useCreateReport()
   const updateReport = useUpdateReport(existingReport?.id ?? 0)
   const [image, setImage] = useState<File | null>(null)
@@ -32,6 +36,8 @@ export function ReportForm({ mode, existingReport }: ReportFormProps) {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
@@ -62,55 +68,51 @@ export function ReportForm({ mode, existingReport }: ReportFormProps) {
     }
   }
 
+  const getErrorMessage = (msg?: string) => {
+    if (!msg) return undefined
+    const key = VALIDATION_ERROR_KEYS[msg]
+    return key ? t(key) : msg
+  }
+
   return (
-    <AppShell title={mode === 'create' ? 'New Report' : 'Edit Report'}>
+    <AppShell title={mode === 'create' ? t('reports.form.newReport') : t('reports.form.editReport')}>
       <div className="mx-auto max-w-2xl">
         <h2 className="text-xl font-semibold text-neutral-900">
-          {mode === 'create' ? 'Report a food safety concern' : 'Edit your report'}
+          {mode === 'create' ? t('reports.form.createHeading') : t('reports.form.editHeading')}
         </h2>
         <p className="mt-1 text-sm text-neutral-500">
           {mode === 'create'
-            ? 'Reports are saved as a draft first — you can review everything before submitting.'
-            : 'You can only edit reports while they remain in draft.'}
+            ? t('reports.form.createSubtitle')
+            : t('reports.form.editSubtitle')}
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 space-y-5">
-          {restaurantsQuery.isLoading && <Skeleton className="h-10 w-full" />}
-          {restaurantsQuery.isError && (
-            <ErrorState message="Couldn't load restaurants." onRetry={() => restaurantsQuery.refetch()} />
-          )}
-          {restaurantsQuery.isSuccess && (
-            <Select
-              label="Restaurant"
-              required
-              error={errors.restaurant?.message}
-              defaultValue={existingReport?.restaurant.id ?? ''}
-              {...register('restaurant')}
-            >
-              <option value="" disabled>
-                Select a restaurant
-              </option>
-              {restaurantsQuery.data.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} — {r.city}, {r.state}
-                </option>
-              ))}
-            </Select>
-          )}
+          <input type="hidden" {...register('restaurant')} />
+          <RestaurantSearchSelect
+            value={watch('restaurant')}
+            onChange={(id) => setValue('restaurant', id, { shouldValidate: true })}
+            error={getErrorMessage(errors.restaurant?.message)}
+            initialRestaurant={existingReport?.restaurant}
+          />
 
-          <Input label="Title" required error={errors.title?.message} {...register('title')} />
+          <Input
+            label={t('reports.form.titleLabel')}
+            required
+            error={getErrorMessage(errors.title?.message)}
+            {...register('title')}
+          />
           <Textarea
-            label="Description"
+            label={t('reports.form.descriptionLabel')}
             required
             rows={5}
-            error={errors.description?.message}
+            error={getErrorMessage(errors.description?.message)}
             {...register('description')}
           />
           <ImageUploader
             file={image}
             onChange={setImage}
             existingImageUrl={existingReport?.image}
-            hint="Required before you can submit the report for review."
+            hint={t('reports.form.imageHint')}
           />
 
           {formError && (
@@ -121,10 +123,10 @@ export function ReportForm({ mode, existingReport }: ReportFormProps) {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" isLoading={isSubmitting}>
-              {mode === 'create' ? 'Save Draft' : 'Save Changes'}
+              {mode === 'create' ? t('reports.form.saveDraft') : t('reports.form.saveChanges')}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         </form>

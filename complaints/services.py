@@ -110,11 +110,21 @@ class ComplaintService:
 
         from notifications.models import Notification
         from notifications.services import NotificationService
+        # Reviewers and Admins are always the recipients/fallbacks for incoming complaints
         NotificationService().notify_reviewers_and_admins(
             event_type=Notification.EventType.COMPLAINT_SUBMITTED,
             message=f"New complaint filed: \"{complaint.title}\".",
             related_complaint=complaint,
         )
+
+        # Notify the restaurant owner ONLY if the restaurant has a verified claimed owner
+        if complaint.restaurant.owner_id is not None and complaint.restaurant.is_verified:
+            NotificationService().notify(
+                recipient=complaint.restaurant.owner,
+                event_type=Notification.EventType.COMPLAINT_SUBMITTED,
+                message=f"New complaint filed for {complaint.restaurant.name}: \"{complaint.title}\".",
+                related_complaint=complaint,
+            )
 
         return complaint
 

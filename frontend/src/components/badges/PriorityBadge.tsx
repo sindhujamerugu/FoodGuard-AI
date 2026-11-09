@@ -1,4 +1,6 @@
 import { cn } from '@/lib/cn'
+import { useTranslation } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import type { ReportPriority } from '@/types/report'
 
 const styles: Record<ReportPriority, string> = {
@@ -8,16 +10,27 @@ const styles: Record<ReportPriority, string> = {
   CRITICAL: 'bg-danger-100 text-danger-700',
 }
 
+const priorityKeys: Record<ReportPriority, TranslationKey> = {
+  LOW: 'priority.low',
+  MEDIUM: 'priority.medium',
+  HIGH: 'priority.high',
+  CRITICAL: 'priority.critical',
+}
+
 export function PriorityBadge({ priority, className }: { priority: ReportPriority; className?: string }) {
+  const t = useTranslation()
+  const key = priorityKeys[priority]
+
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize transition-colors duration-200',
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors duration-200',
         styles[priority],
         className,
       )}
     >
-      {priority.toLowerCase()}
+      {key ? t(key) : priority}
     </span>
   )
 }
+

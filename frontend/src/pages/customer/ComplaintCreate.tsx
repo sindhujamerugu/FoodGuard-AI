@@ -15,8 +15,25 @@ import { useComplaints, useCreateComplaint } from '@/hooks/useComplaints'
 import { complaintSchema, type ComplaintFormValues } from '@/lib/schemas'
 import { COMPLAINT_CATEGORY_LABELS } from '@/types/complaint'
 import { toApiError } from '@/types/errors'
+import { useTranslation, type TranslationKey } from '@/i18n'
+
+const COMPLAINT_CATEGORY_KEYS: Record<string, TranslationKey> = {
+  FOOD_QUALITY: 'category.foodQuality',
+  SPOILAGE: 'category.spoilage',
+  FOREIGN_OBJECT: 'category.foreignObject',
+  HYGIENE: 'category.hygiene',
+  TASTE_OR_ODOR: 'category.tasteOrOdor',
+  OTHER: 'category.other',
+}
+
+const VALIDATION_ERROR_KEYS: Record<string, TranslationKey> = {
+  'Title is required.': 'validation.titleRequired',
+  'Description is required.': 'validation.descriptionRequired',
+  'Select a report.': 'validation.selectReport',
+}
 
 export default function ComplaintCreate() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const preselectedReportId = searchParams.get('reportId') ?? undefined
@@ -25,6 +42,12 @@ export default function ComplaintCreate() {
   const complaintsQuery = useComplaints()
   const createComplaint = useCreateComplaint()
   const [formError, setFormError] = useState<string | null>(null)
+
+  function getErrorMessage(msg?: string): string | undefined {
+    if (!msg) return undefined
+    const key = VALIDATION_ERROR_KEYS[msg]
+    return key ? t(key) : msg
+  }
 
   const eligibleReports = useMemo(() => {
     const complaintReportIds = new Set(complaintsQuery.data?.map((c) => c.food_report.id))
@@ -54,18 +77,18 @@ export default function ComplaintCreate() {
   const isError = reportsQuery.isError || complaintsQuery.isError
 
   return (
-    <AppShell title="File a Complaint">
+    <AppShell title={t('complaints.create.title')}>
       <div className="mx-auto max-w-2xl">
-        <h2 className="text-xl font-semibold text-neutral-900">File a formal complaint</h2>
+        <h2 className="text-xl font-semibold text-neutral-900">{t('complaints.create.heading')}</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Complaints can only be filed against reports you've already submitted for review.
+          {t('complaints.create.subtitle')}
         </p>
 
         {isLoading && <Skeleton className="mt-6 h-40 w-full rounded-2xl" />}
         {isError && (
           <ErrorState
             className="mt-6"
-            message="Couldn't load your reports."
+            message={t('complaints.create.loadError')}
             onRetry={() => {
               void reportsQuery.refetch()
               void complaintsQuery.refetch()
@@ -76,22 +99,22 @@ export default function ComplaintCreate() {
         {!isLoading && !isError && eligibleReports.length === 0 && (
           <EmptyState
             className="mt-6"
-            title="No eligible reports"
-            description="Submit a food safety report first, or check that it doesn't already have a complaint filed."
+            title={t('complaints.create.noEligibleTitle')}
+            description={t('complaints.create.noEligibleDesc')}
           />
         )}
 
         {!isLoading && !isError && eligibleReports.length > 0 && (
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 space-y-5">
             <Select
-              label="Related report"
+              label={t('complaints.create.reportLabel')}
               required
-              error={errors.food_report?.message}
+              error={getErrorMessage(errors.food_report?.message)}
               defaultValue={preselectedReportId ?? ''}
               {...register('food_report')}
             >
               <option value="" disabled>
-                Select a report
+                {t('complaints.create.selectReport')}
               </option>
               {eligibleReports.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -100,20 +123,33 @@ export default function ComplaintCreate() {
               ))}
             </Select>
 
-            <Select label="Category" required error={errors.category?.message} {...register('category')}>
-              {Object.entries(COMPLAINT_CATEGORY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+            <Select
+              label={t('complaints.create.categoryLabel')}
+              required
+              error={getErrorMessage(errors.category?.message)}
+              {...register('category')}
+            >
+              {Object.keys(COMPLAINT_CATEGORY_LABELS).map((value) => {
+                const key = COMPLAINT_CATEGORY_KEYS[value]
+                return (
+                  <option key={value} value={value}>
+                    {key ? t(key) : COMPLAINT_CATEGORY_LABELS[value as keyof typeof COMPLAINT_CATEGORY_LABELS]}
+                  </option>
+                )
+              })}
             </Select>
 
-            <Input label="Title" required error={errors.title?.message} {...register('title')} />
+            <Input
+              label={t('complaints.create.titleLabel')}
+              required
+              error={getErrorMessage(errors.title?.message)}
+              {...register('title')}
+            />
             <Textarea
-              label="Description"
+              label={t('complaints.create.descriptionLabel')}
               required
               rows={5}
-              error={errors.description?.message}
+              error={getErrorMessage(errors.description?.message)}
               {...register('description')}
             />
 
@@ -125,10 +161,10 @@ export default function ComplaintCreate() {
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" isLoading={createComplaint.isPending}>
-                Submit Complaint
+                {t('complaints.create.submitAction')}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </form>
