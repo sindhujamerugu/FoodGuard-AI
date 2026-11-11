@@ -64,6 +64,7 @@ class Escalation(models.Model):
         TAMIL = "ta", "Tamil"
         KANNADA = "kn", "Kannada"
         MARATHI = "mr", "Marathi"
+        MALAYALAM = "ml", "Malayalam"
 
     # ------------------------------------------------------------------
     # Fields

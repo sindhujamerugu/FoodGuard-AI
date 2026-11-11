@@ -34,6 +34,7 @@ class Feedback(models.Model):
         TAMIL = "ta", "Tamil"
         KANNADA = "kn", "Kannada"
         MARATHI = "mr", "Marathi"
+        MALAYALAM = "ml", "Malayalam"
 
     # ------------------------------------------------------------------
     # Fields
@@ -81,6 +82,34 @@ class Feedback(models.Model):
         ),
     )
 
+    # ------------------------------------------------------------------
+    # Moderation status
+    # ------------------------------------------------------------------
+
+    class ModerationStatus(models.TextChoices):
+        PENDING  = "PENDING",  "Pending Review"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+
+    moderation_status = models.CharField(
+        max_length=10,
+        choices=ModerationStatus.choices,
+        default=ModerationStatus.PENDING,
+        db_index=True,
+        verbose_name="moderation status",
+        help_text=(
+            "PENDING — newly submitted, awaiting review. "
+            "APPROVED — visible in public aggregates. "
+            "REJECTED — excluded from public aggregates; customer can see own record."
+        ),
+    )
+    moderation_note = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="moderation note",
+        help_text="Admin-only note about the moderation decision. Never exposed to customers.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -106,6 +135,7 @@ class Feedback(models.Model):
                 fields=["original_language"], name="feedback_language_idx"
             ),
             models.Index(fields=["created_at"], name="feedback_created_idx"),
+            models.Index(fields=["moderation_status"], name="feedback_modstatus_idx"),
         ]
 
     def __str__(self) -> str:

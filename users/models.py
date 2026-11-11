@@ -34,12 +34,13 @@ class User(AbstractUser):
     # ------------------------------------------------------------------
 
     class Language(models.TextChoices):
-        ENGLISH = "en", "English"
-        TELUGU = "te", "Telugu"
-        HINDI = "hi", "Hindi"
-        TAMIL = "ta", "Tamil"
-        KANNADA = "kn", "Kannada"
-        MARATHI = "mr", "Marathi"
+        ENGLISH   = "en", "English"
+        TELUGU    = "te", "Telugu"
+        HINDI     = "hi", "Hindi"
+        TAMIL     = "ta", "Tamil"
+        KANNADA   = "kn", "Kannada"
+        MARATHI   = "mr", "Marathi"
+        MALAYALAM = "ml", "Malayalam"
 
     # ------------------------------------------------------------------
     # Remove the inherited username field — email is the identifier.

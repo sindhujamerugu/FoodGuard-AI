@@ -126,6 +126,19 @@ class ComplaintService:
                 related_complaint=complaint,
             )
 
+        # ── Prototype officer auto-assignment ──────────────────────
+        # Best-effort: never raise if the food_safety_officers app has no
+        # mapping configured — complaint creation must always succeed.
+        try:
+            from food_safety_officers.services import assign_complaint as _assign
+            _assign(complaint)
+        except Exception:
+            import logging
+            logging.getLogger("foodguard").exception(
+                "Officer auto-assignment failed for complaint_id=%s — "
+                "complaint was still created successfully.", complaint.pk
+            )
+
         return complaint
 
     # ------------------------------------------------------------------

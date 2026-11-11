@@ -113,6 +113,7 @@ INSTALLED_APPS = [
     "translation",
     "notifications",
     "analytics",
+    "food_safety_officers",
 ]
 
 

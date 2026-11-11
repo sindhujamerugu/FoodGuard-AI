@@ -8,10 +8,11 @@ import { te } from './te'
 import { ta } from './ta'
 import { kn } from './kn'
 import { mr } from './mr'
+import { ml } from './ml'
 
 /** All six supported UI languages for FoodGuard AI:
  * English, Telugu, Hindi, Tamil, Kannada, and Marathi. */
-export const SUPPORTED_UI_LANGUAGES = ['en', 'te', 'hi', 'ta', 'kn', 'mr'] as const
+export const SUPPORTED_UI_LANGUAGES = ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml'] as const
 export type UiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number]
 
 export const DICTIONARIES: Record<UiLanguage, Partial<Record<TranslationKey, string>>> = {
@@ -21,6 +22,7 @@ export const DICTIONARIES: Record<UiLanguage, Partial<Record<TranslationKey, str
   ta,
   kn,
   mr,
+  ml,
 }
 
 const STORAGE_KEY = 'foodguard.language'

@@ -32,6 +32,8 @@ class ComplaintMinimalSerializer(serializers.ModelSerializer):
 class FeedbackReadSerializer(serializers.ModelSerializer):
     """
     Full read-only response.
+    Exposes moderation_status to customer (they can see own status).
+    Never exposes moderation_note (admin-only internal field).
     Never exposes password or internal security fields.
     """
 
@@ -47,10 +49,33 @@ class FeedbackReadSerializer(serializers.ModelSerializer):
             "rating",
             "comments",
             "original_language",
+            "moderation_status",   # customer-visible: PENDING / APPROVED / REJECTED
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+
+# ---------------------------------------------------------------------------
+# Moderation serializer (admin/reviewer only)
+# ---------------------------------------------------------------------------
+
+class FeedbackModerationSerializer(serializers.ModelSerializer):
+    """
+    PATCH /api/v1/feedback/<id>/moderate/
+    Admin/Reviewer only — sets moderation_status and optional moderation_note.
+    """
+
+    class Meta:
+        model = Feedback
+        fields = ["moderation_status", "moderation_note"]
+
+    def validate_moderation_status(self, value: str) -> str:
+        from feedback.models import Feedback as F
+        allowed = {F.ModerationStatus.APPROVED, F.ModerationStatus.REJECTED, F.ModerationStatus.PENDING}
+        if value not in allowed:
+            raise serializers.ValidationError(f"'{value}' is not a valid moderation status.")
+        return value
 
 
 # ---------------------------------------------------------------------------
@@ -102,3 +127,20 @@ class FeedbackCreateSerializer(serializers.Serializer):
             rating=validated_data["rating"],
             comments=validated_data.get("comments", ""),
         )
+
+
+# ---------------------------------------------------------------------------
+# Restaurant rating aggregation serializer
+# ---------------------------------------------------------------------------
+
+class RestaurantRatingSerializer(serializers.Serializer):
+    """
+    Read-only aggregate returned by GET /api/v1/restaurants/<id>/rating/
+    Only APPROVED feedback contributes to the aggregate.
+    """
+    restaurant_id      = serializers.IntegerField()
+    restaurant_name    = serializers.CharField()
+    average_rating     = serializers.FloatField(allow_null=True)
+    total_ratings      = serializers.IntegerField()
+    distribution       = serializers.DictField(child=serializers.IntegerField())
+    has_ratings        = serializers.BooleanField()

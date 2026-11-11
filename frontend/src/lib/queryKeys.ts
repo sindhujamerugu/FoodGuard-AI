@@ -21,6 +21,14 @@ export const queryKeys = {
     all: ['escalations'] as const,
     detail: (id: number) => ['escalations', id] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+  },
+  feedback: {
+    all:    ['feedback'] as const,
+    detail: (id: number) => ['feedback', id] as const,
+    restaurantRating: (restaurantId: number) => ['restaurant-rating', restaurantId] as const,
+  },
   auth: {
     profile: ['auth', 'profile'] as const,
   },

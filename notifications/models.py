@@ -26,6 +26,13 @@ class Notification(models.Model):
         COMPLAINT_STATUS_CHANGED = "COMPLAINT_STATUS_CHANGED", "Complaint Status Changed"
         ESCALATION_CREATED = "ESCALATION_CREATED", "Escalation Created"
         ESCALATION_UPDATED = "ESCALATION_UPDATED", "Escalation Updated"
+        # ── food_safety_officers prototype events ──────────────────
+        OFFICER_ASSIGNED  = "OFFICER_ASSIGNED",  "Officer Assigned (Prototype)"
+        OFFICER_ESCALATED = "OFFICER_ESCALATED", "Complaint Escalated to Next Level (Prototype)"
+        # ── feedback events ────────────────────────────────────────
+        FEEDBACK_SUBMITTED = "FEEDBACK_SUBMITTED", "Feedback Submitted"
+        FEEDBACK_APPROVED  = "FEEDBACK_APPROVED",  "Feedback Approved"
+        FEEDBACK_REJECTED  = "FEEDBACK_REJECTED",  "Feedback Reviewed"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,

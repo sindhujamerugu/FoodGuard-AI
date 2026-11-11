@@ -61,13 +61,37 @@ class FeedbackService:
         self._check_complaint_status(complaint)
         self._check_no_existing_feedback(complaint)
 
-        return Feedback.objects.create(
+        feedback = Feedback.objects.create(
             complaint=complaint,
             customer=requesting_user,
             rating=rating,
             comments=comments,
             original_language=requesting_user.preferred_language,
         )
+
+        # Notify reviewers/admins of new feedback + confirm to customer
+        try:
+            from notifications.models import Notification
+            from notifications.services import NotificationService
+            svc = NotificationService()
+            svc.notify(
+                recipient=requesting_user,
+                event_type="FEEDBACK_SUBMITTED",
+                message=f"Your feedback for complaint \"{complaint.title}\" has been received and is under review.",
+                related_complaint=complaint,
+            )
+            svc.notify_reviewers_and_admins(
+                event_type="FEEDBACK_SUBMITTED",
+                message=f"New feedback submitted for complaint \"{complaint.title}\" (rating: {rating}/5).",
+                related_complaint=complaint,
+            )
+        except Exception:
+            import logging
+            logging.getLogger("foodguard").exception(
+                "Notification failed for new feedback on complaint_id=%s", complaint.pk
+            )
+
+        return feedback
 
     # ------------------------------------------------------------------
     # Guards

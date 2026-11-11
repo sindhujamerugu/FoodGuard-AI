@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { BarChart3, Building2, FileText, LayoutDashboard, MessageSquare, ShieldCheck, User } from 'lucide-react'
+import { BarChart3, Bell, Building2, FileText, LayoutDashboard, MessageSquare, ShieldCheck, Star, User } from 'lucide-react'
 import type { TranslationKey } from '@/i18n/en'
 import type { UserRole } from '@/types/user'
 
@@ -8,13 +8,16 @@ export interface NavItem {
   to: string
   icon: LucideIcon
   end?: boolean
+  badge?: 'notifications'
 }
 
 const CUSTOMER_NAV: NavItem[] = [
-  { labelKey: 'nav.dashboard', to: '/dashboard', icon: LayoutDashboard, end: true },
-  { labelKey: 'nav.reports', to: '/reports', icon: FileText },
-  { labelKey: 'nav.complaints', to: '/complaints', icon: MessageSquare },
-  { labelKey: 'nav.profile', to: '/profile', icon: User },
+  { labelKey: 'nav.dashboard',      to: '/dashboard',   icon: LayoutDashboard, end: true },
+  { labelKey: 'nav.reports',        to: '/reports',     icon: FileText },
+  { labelKey: 'nav.complaints',     to: '/complaints',  icon: MessageSquare },
+  { labelKey: 'nav.notifications',  to: '/notifications', icon: Bell, badge: 'notifications' },
+  { labelKey: 'nav.feedback',       to: '/my-feedback', icon: Star },
+  { labelKey: 'nav.profile',        to: '/profile',     icon: User },
 ]
 
 const RESTAURANT_NAV: NavItem[] = [

@@ -1,7 +1,7 @@
 import { Check, Globe, ChevronDown } from 'lucide-react'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { SUPPORTED_UI_LANGUAGES, useLanguage } from '@/i18n/LanguageContext'
-import { NATIVE_LANGUAGE_LABELS } from '@/types/user'
+import { UI_NATIVE_LABELS } from '@/types/user'
 import { cn } from '@/lib/cn'
 
 interface LanguageSelectorProps {
@@ -30,7 +30,7 @@ export function LanguageSelector({ variant = 'ghost', className }: LanguageSelec
     >
       <Globe className={cn('size-4 shrink-0', variant === 'outline' ? 'text-primary-700' : 'text-neutral-500')} aria-hidden="true" />
       <span className={cn('font-medium', variant === 'outline' ? 'inline' : 'hidden sm:inline')}>
-        {NATIVE_LANGUAGE_LABELS[language]}
+        {UI_NATIVE_LABELS[language] ?? language}
       </span>
       <ChevronDown className="size-3.5 text-neutral-400 shrink-0" aria-hidden="true" />
     </span>
@@ -41,7 +41,7 @@ export function LanguageSelector({ variant = 'ghost', className }: LanguageSelec
       align="right"
       trigger={trigger}
       items={SUPPORTED_UI_LANGUAGES.map((code) => ({
-        label: NATIVE_LANGUAGE_LABELS[code],
+        label: UI_NATIVE_LABELS[code] ?? code,
         onSelect: () => setLanguage(code),
         icon: code === language ? <Check className="size-4 text-primary-600" aria-hidden="true" /> : <span className="size-4" />,
       }))}

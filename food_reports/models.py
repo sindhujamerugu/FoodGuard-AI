@@ -93,6 +93,32 @@ class FoodReport(models.Model):
         verbose_name="image",
     )
 
+    # Optional GPS coordinates captured from the customer's browser.
+    # Nullable — existing reports and reports where location is skipped
+    # always have NULL here; never hardcoded or guessed.
+    location_lat = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name="latitude",
+        help_text=(
+            "Latitude in decimal degrees, captured from browser Geolocation API. "
+            "Range −90.0 to 90.0. NULL when customer skips or denies location."
+        ),
+    )
+    location_lng = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name="longitude",
+        help_text=(
+            "Longitude in decimal degrees, captured from browser Geolocation API. "
+            "Range −180.0 to 180.0. NULL when customer skips or denies location."
+        ),
+    )
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

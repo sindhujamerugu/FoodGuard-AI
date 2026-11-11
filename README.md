@@ -1,660 +1,496 @@
 # 🛡️ FoodGuard AI
 
-**AI-powered food safety reporting and complaint management platform.**
+**AI-powered food safety reporting and complaint management platform for the Indian market.**
 
-FoodGuard AI enables customers to report food quality concerns at restaurants, receive preliminary AI visual assessments of food images, and track formal complaints through a structured review process — all in six Indian languages.
+Customers photograph food quality issues at restaurants, receive a preliminary AI visual assessment, and escalate through a structured formal complaint workflow — all served in 6 Indian languages.
 
-> ⚠️ **AI results are preliminary visual assessments only — not scientific food-safety certifications, proof of contamination, or evidence of restaurant wrongdoing.**
-
----
-
-## ✨ Features
-
-### For Customers
-- 📝 **Report food issues** — create reports with image uploads, track status from draft to resolution
-- 🤖 **AI visual assessment** — get a preliminary analysis of uploaded food images (spoilage, mold, normal)
-- 📋 **File complaints** — escalate submitted reports into formal complaints
-- ⭐ **Leave feedback** — rate and comment on resolved complaints
-- 🌐 **Multilingual UI** — use the app in English, Telugu, Hindi, Tamil, Kannada, or Marathi
-
-### For Reviewers & Admins
-- 📊 **Dashboard analytics** — real-time KPI cards with report/complaint/AI statistics
-- 🔍 **Case management** — review reports, manage complaints, verify restaurants
-- ⬆️ **Escalation workflow** — 3-tier internal escalation system for complex cases
-- 🔔 **Notifications** — in-app alerts for new submissions, status changes, and escalations
-
-### For Restaurant Users
-- 🏪 **Restaurant profile management** — register and manage restaurant details
-- ✅ **Verification system** — reviewer/admin-controlled restaurant verification with claim workflow
+> ⚠️ **AI Disclaimer:** All AI results are a *preliminary visual assessment only*. They do **not** constitute scientific food-safety certification, proof of contamination, evidence of any regulatory violation, or medical/health advice.
 
 ---
 
-## 🏗️ Tech Stack
+## Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Tech Stack](#tech-stack)
+3. [Architecture](#architecture)
+4. [Features Completed](#features-completed)
+5. [Django Apps](#django-apps)
+6. [API Reference](#api-reference)
+7. [AI / ML Pipeline](#ai--ml-pipeline)
+8. [Frontend](#frontend)
+9. [Data Pipeline](#data-pipeline)
+10. [Getting Started (Local Dev)](#getting-started-local-dev)
+11. [Environment Variables](#environment-variables)
+12. [Deployment](#deployment)
+13. [Testing](#testing)
+14. [Project Structure](#project-structure)
+15. [Known Limitations & Roadmap](#known-limitations--roadmap)
+
+---
+
+## Project Overview
+
+FoodGuard AI is a full-stack platform that enables:
+
+- **Customers** to submit food quality reports with photo evidence, receive an AI visual assessment (normal / spoilage indicator / mold-like growth), file formal complaints, and track resolution.
+- **Restaurant owners** to view and respond to complaints against their establishment.
+- **Reviewers / Admins** to manage the full complaint lifecycle, escalate cases, and view aggregated analytics.
+
+The platform is designed for the Indian market with support for **English, Telugu, Hindi, Tamil, Kannada, and Marathi**.
+
+---
+
+## Tech Stack
 
 ### Backend
-
-| Component | Version |
+| Layer | Technology |
 |---|---|
-| Python | 3.12+ |
-| Django | 5.2.17 (LTS) |
-| Django REST Framework | 3.17.1 |
-| SimpleJWT | 5.5.1 |
-| PostgreSQL | 16 |
-| Pillow | 11.3.0 |
-| PyTorch (optional) | CPU inference |
-| drf-spectacular | 0.28.0 |
+| Framework | Django 5.2.17 + Django REST Framework 3.17.1 |
+| Auth | SimpleJWT 5.5.1 (30-min access / 7-day refresh, rotation + blacklist) |
+| Database | PostgreSQL 16 |
+| Static files | WhiteNoise 6.11.0 |
+| WSGI | Gunicorn 23.0.0 |
+| API Docs | drf-spectacular 0.28.0 (OpenAPI / Swagger / ReDoc) |
+| Image processing | Pillow 11.3.0 |
+| CORS | django-cors-headers 4.9.0 |
+
+### AI / ML
+| Layer | Technology |
+|---|---|
+| Model architecture | MobileNetV3-Small (torchvision) |
+| Framework | PyTorch 2.14.0 (CPU) |
+| Classes | `normal`, `spoilage_indicator`, `mold_like_growth` |
+| Confidence threshold | 0.70 (configurable via env) |
+| Fallback | `HUMAN_REVIEW` result when model absent or confidence low |
 
 ### Frontend
-
-| Component | Version |
+| Layer | Technology |
 |---|---|
-| React | 19.2.8 |
-| TypeScript | 6.0.2 |
-| Tailwind CSS | 4.3.3 |
-| Vite | 8.3.0 |
-| TanStack React Query | 5.103.2 |
-| React Hook Form + Zod | 7.88.0 / 4.6.5 |
-| React Router | 7.18.4 |
-| Vitest + React Testing Library | 5.0.2 |
+| Framework | React 19 + TypeScript 6.0 |
+| Build | Vite 8.3 |
+| Styling | Tailwind CSS 4.3 |
+| State / data | TanStack React Query 5 |
+| Forms | React Hook Form + Zod |
+| Routing | React Router 7 |
+| HTTP | Axios |
+| Testing | Vitest 5 + React Testing Library |
+| i18n | 6 language dictionaries, 288 keys each |
 
-### Infrastructure
+---
 
-| Component | Purpose |
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Frontend (React SPA)                │
+│   Vite · React 19 · TypeScript · Tailwind · 6 languages │
+│                  Deployed on Vercel                      │
+└──────────────────────┬──────────────────────────────────┘
+                       │ REST API (JWT)
+┌──────────────────────▼──────────────────────────────────┐
+│               Django REST Framework Backend              │
+│  9 Django apps · OpenAPI docs · WhiteNoise static files  │
+│                  Deployed on Render                      │
+└───────┬───────────────────────────────┬─────────────────┘
+        │                               │
+┌───────▼───────┐          ┌────────────▼────────────┐
+│ PostgreSQL 16 │          │  AI Inference Engine     │
+│  (Render DB)  │          │  MobileNetV3-Small       │
+│               │          │  models/food_quality/    │
+└───────────────┘          └──────────────────────────┘
+```
+
+### Service-Layer Pattern
+Every Django app with business logic uses a dedicated `services.py`. Views are thin wrappers that call services — they contain zero business logic. Key patterns:
+- **Server-side ownership derivation**: `customer`, `restaurant`, `original_language` are always derived from `request.user` — never accepted from client payload (prevents horizontal privilege escalation).
+- **Immutable fields**: `original_language` on Complaint/Escalation is set at creation and never overwritten.
+- **Mock fallback**: AI service automatically falls back to a mock result (`HUMAN_REVIEW`) when `model.pt` is absent — the entire API works without PyTorch installed.
+
+---
+
+## Features Completed
+
+### ✅ Authentication & User Management
+- Custom `User` model with email-based login (no username field)
+- 4 roles: `CUSTOMER`, `RESTAURANT_USER`, `REVIEWER`, `ADMIN`
+- JWT with access/refresh rotation and blacklisting
+- Rate-limited auth endpoints (10 req/min for anon)
+- Profile update (first/last name, phone, preferred language)
+- Bootstrap admin management command for zero-touch deploy
+
+### ✅ Restaurant Management
+- Full CRUD for restaurant listings
+- Claim workflow: `UNCLAIMED → PENDING → CLAIMED`
+- Verification by REVIEWER/ADMIN (`is_verified`)
+- Seeded dev data via management command
+
+### ✅ Food Safety Reports (Core Workflow)
+- Report creation with image upload (JPEG/PNG, ≤5 MB)
+- 4-stage image validation: extension → MIME type → size → Pillow `verify()` (corruption/spoofing guard)
+- State machine: `DRAFT → SUBMITTED → UNDER_REVIEW → RESOLVED / CLOSED`
+- UUID-based image filenames for unguessable URLs
+- Priority system: `LOW / MEDIUM / HIGH / CRITICAL`
+
+### ✅ AI Visual Assessment
+- MobileNetV3-Small trained on 3-class food quality dataset
+- Thread-safe singleton model loader (double-checked locking)
+- Lazy PyTorch import — Django starts without torch installed
+- Confidence threshold (default 0.70) → forced `HUMAN_REVIEW` below it
+- Risk mapping: `normal → LOW`, `spoilage_indicator → HIGH`, `mold_like_growth → HIGH`
+- All errors caught internally — always returns a safe result to callers
+- Complete mock fallback when model artifacts absent
+
+### ✅ Formal Complaints
+- One complaint per food report (DB-enforced unique constraint)
+- Can only be filed against a `SUBMITTED` report
+- Categories: Food Quality, Spoilage, Foreign Object, Hygiene, Taste/Odor, Other
+- Immutable `original_language` (derived from user's preferred language at submission)
+- Role-based workflow: CUSTOMER creates; REVIEWER/ADMIN manages status/priority/resolution
+
+### ✅ Escalation System
+- 3-tier internal escalation (Level 1/2/3)
+- One active escalation per complaint at a time
+- REVIEWER/ADMIN only — not tied to any external regulatory body
+- Full lifecycle: `PENDING → IN_REVIEW → RESOLVED → CLOSED`
+
+### ✅ Feedback System
+- Customer satisfaction ratings (1–5 stars)
+- One feedback per complaint (DB-enforced unique)
+- Only on `RESOLVED` or `CLOSED` complaints
+
+### ✅ In-App Notifications
+- 7 event types: report submitted/status changed, AI analysis completed, complaint submitted/status changed, escalation created/updated
+- Automatic notification to all REVIEWER/ADMIN users on report submission
+- Polling-based (no WebSocket/SSE required)
+- Composite DB index on `(recipient, is_read)` for efficient unread queries
+
+### ✅ Analytics Dashboard
+- REVIEWER/ADMIN only
+- Direct DB `COUNT` aggregations — no Python-side loading, no fabricated numbers
+- Reports by status/priority, complaints by status/priority, AI results by risk/status, restaurants pending verification
+
+### ✅ Translation Infrastructure
+- 6-language support: English, Telugu, Hindi, Tamil, Kannada, Marathi
+- `TranslationService` facade with pluggable provider pattern
+- Current provider: `NullTranslationProvider` (returns `"unavailable"`) — seam ready for Google/Azure/LibreTranslate
+- User content always stored as-entered (never auto-overwritten)
+- Static string catalog for AI/notification messages in en/te/hi
+
+### ✅ Frontend SPA
+- 30+ routes with role-based access guards
+- 60+ components organized by domain
+- AI analysis result cards with confidence bar and mandatory disclaimer
+- Image uploader with client-side preview
+- 6 complete language dictionaries (288 keys each), language preference persisted to localStorage and synced to backend profile
+- Full pages: Customer dashboard, Reviewer dashboard, Restaurant management, Admin dashboard, Landing, Auth
+
+### ✅ ML Training Pipeline
+- Full training CLI: `python -m src.ml.train --manifest ... --data-root ... --output-dir ...`
+- Grouped stratified split (by `item_id` — prevents item-level data leakage between train/val/test)
+- Early stopping with configurable patience
+- Optional freeze-then-fine-tune schedule (first N epochs freeze backbone)
+- Per-epoch checkpointing, full evaluation with per-class precision/recall/F1
+- Artifacts written: `model.pt`, `label_map.json`, `train_config.json`
+- 72 ML pipeline unit tests (no DB required)
+
+### ✅ Infrastructure & DevOps
+- Docker Compose for local dev (PostgreSQL 16, Django backend)
+- Dockerfile (Python 3.12-slim, non-root user, health check via `/healthz/`)
+- Render Blueprint (`render.yaml`) for one-click backend deploy
+- Vercel config (`frontend/vercel.json`) for SPA routing
+- OpenAPI schema auto-generated at `/api/schema/` with Swagger UI + ReDoc
+- Health check endpoint `/healthz/`
+- Security hardening in production: SSL redirect, HSTS, secure cookies, content-type nosniff
+- WhiteNoise for static files (no separate static server needed)
+
+---
+
+## Django Apps
+
+| App | Purpose |
 |---|---|
-| Docker Compose | PostgreSQL dev instance (port 5434) |
-| Render | Backend deployment (Blueprint ready) |
-| Vercel | Frontend deployment (config ready) |
-| WhiteNoise | Static file serving |
-| Gunicorn | Production WSGI server |
+| `users` | Custom User model, JWT auth (register/login/logout/profile/token-refresh) |
+| `restaurants` | Restaurant CRUD, claim workflow, verification |
+| `food_reports` | Core report model, image validation, DRAFT→SUBMITTED state machine |
+| `ai_analysis` | MobileNetV3-Small inference, AIAnalysis model, mock fallback |
+| `complaints` | Formal complaint workflow, role-based status lifecycle |
+| `escalation` | 3-tier internal escalation |
+| `feedback` | Customer satisfaction ratings on resolved complaints |
+| `notifications` | In-app notifications for 7 event types |
+| `analytics` | Read-only DB aggregation dashboard for REVIEWER/ADMIN |
+| `translation` | Pluggable translation facade (currently NullProvider) |
+| `config` | Django project settings, root URL routing, health check |
 
 ---
 
-## 📁 Project Structure
+## API Reference
 
-```
-FoodGuard-AI/
-├── manage.py                      # Django management
-├── requirements.txt               # Backend dependencies
-├── requirements-render.txt        # Production deps (includes PyTorch)
-├── docker-compose.yml             # PostgreSQL dev instance
-├── Dockerfile                     # Backend container image
-├── render.yaml                    # Render deployment Blueprint
-├── .env.example                   # Environment variable template
-│
-├── config/                        # Django project configuration
-│   ├── settings.py                # Settings with env-based config
-│   ├── urls.py                    # Root URL routing (9 API namespaces)
-│   ├── views.py                   # Health check endpoint
-│   ├── wsgi.py / asgi.py
-│
-├── users/                         # Custom User model + JWT auth
-│   ├── models.py                  # Email auth, 4 roles, 6 languages
-│   ├── managers.py                # Custom UserManager
-│   ├── views.py                   # Register, Login, Logout, Profile
-│   ├── serializers.py / urls.py / permissions.py / tests.py
-│   └── management/commands/       # bootstrap_admin, create_dev_users
-│
-├── restaurants/                   # Restaurant management
-│   ├── models.py                  # Name, address, owner, verification, claim status
-│   ├── views.py                   # CRUD + ownership/verification rules
-│   ├── serializers.py / urls.py / permissions.py / tests.py
-│   └── management/commands/       # seed_restaurants
-│
-├── food_reports/                  # Food safety reports
-│   ├── models.py                  # DRAFT → SUBMITTED → UNDER_REVIEW → RESOLVED/CLOSED
-│   ├── services.py                # Submission service + image validation
-│   ├── views.py                   # CRUD + submit endpoint
-│   ├── serializers.py / urls.py / permissions.py / tests.py
-│
-├── ai_analysis/                   # AI visual assessment
-│   ├── models.py                  # AIAnalysis: OneToOne with FoodReport
-│   ├── inference.py               # MobileNetV3-Small real-model inference
-│   ├── services.py                # Service abstraction (real model or mock)
-│   ├── views.py                   # Analyze + get analysis result
-│   ├── serializers.py / urls.py / permissions.py / tests.py
-│
-├── complaints/                    # Formal complaints
-│   ├── models.py                  # Category, status lifecycle, language preservation
-│   ├── services.py                # Create, update, status transitions
-│   ├── views.py / serializers.py / urls.py / permissions.py / tests.py
-│
-├── escalation/                    # 3-tier internal escalation
-│   ├── models.py                  # LEVEL_1/2/3, PENDING → IN_REVIEW → RESOLVED → CLOSED
-│   ├── services.py                # Escalation lifecycle management
-│   ├── views.py / serializers.py / urls.py / permissions.py / tests.py
-│
-├── feedback/                      # Customer satisfaction ratings
-│   ├── models.py                  # Rating 1–5, unique per complaint
-│   ├── services.py                # Ownership + status guards
-│   ├── views.py / serializers.py / urls.py / permissions.py / tests.py
-│
-├── notifications/                 # In-app notification system
-│   ├── models.py                  # 7 event types, read/unread tracking
-│   ├── services.py                # Event recording + recipient routing
-│   ├── views.py / serializers.py / urls.py / permissions.py / tests.py
-│
-├── analytics/                     # Platform-wide analytics
-│   ├── views.py                   # Summary endpoint (DB aggregations)
-│   ├── serializers.py / urls.py / permissions.py / tests.py
-│
-├── translation/                   # Multilingual backend support
-│   ├── strings.py                 # Static string catalog (en/te/hi)
-│   ├── services.py                # TranslationService abstraction
-│   ├── tests.py / test_strings.py / test_translation.py
-│
-├── src/                           # ML pipeline (standalone)
-│   ├── data/
-│   │   ├── synthetic/             # Synthetic dataset generator
-│   │   └── dataset_tools/         # Manifest validation, leakage detection
-│   └── ml/
-│       ├── train.py               # Full training pipeline
-│       ├── model.py               # MobileNetV3-Small architecture
-│       ├── evaluate.py            # Metrics + evaluation
-│       ├── config.py / labels.py / transforms.py / splitting.py
-│       ├── checkpointing.py / artifacts.py / metrics.py
-│       └── tests/                 # 72 ML pipeline tests
-│
-├── frontend/                      # React SPA
-│   ├── package.json
-│   ├── vite.config.ts / tsconfig.json / vitest.config.ts
-│   └── src/
-│       ├── App.tsx                # Route definitions (30+ routes)
-│       ├── main.tsx               # App entry point
-│       ├── index.css              # Tailwind + custom styles
-│       ├── api/                   # 7 API clients (auth, reports, complaints, etc.)
-│       ├── components/            # 60+ reusable components
-│       │   ├── ai/                # AIAnalysisCard, AIDisclaimer, ConfidenceBar, etc.
-│       │   ├── auth/              # ProtectedRoute, GuestRoute, RoleGuard
-│       │   ├── badges/            # StatusBadge, PriorityBadge, RoleBadge
-│       │   ├── complaints/        # ComplaintCard, ComplaintOverview, ComplaintTimeline
-│       │   ├── dashboard/         # StatCard
-│       │   ├── layout/            # AppShell, Sidebar, Topbar, MobileNav
-│       │   ├── reports/           # ReportCard, ReportOverview, ReportTable
-│       │   ├── restaurants/       # RestaurantCard, RestaurantSearchSelect
-│       │   ├── reviewer/          # CaseHeader, CaseTimeline, EscalateCaseModal
-│       │   ├── states/            # EmptyState, ErrorState, LoadingSkeleton
-│       │   ├── ui/                # Button, Input, Modal, Select, etc.
-│       │   └── upload/            # ImageUploader
-│       ├── context/               # AuthContext (JWT state management)
-│       ├── hooks/                 # useReports, useComplaints, useRestaurants, etc.
-│       ├── i18n/                  # 6 language dictionaries (288 keys each)
-│       ├── lib/                   # HTTP client, schemas, format utils, etc.
-│       ├── pages/                 # All page components
-│       │   ├── customer/          # Dashboard, Reports, Complaints
-│       │   ├── reviewer/          # ReviewerDashboard, Reports, Complaints
-│       │   ├── restaurant/        # RestaurantDashboard, Create, Edit
-│       │   ├── admin/             # AdminDashboard
-│       │   ├── Landing / Login / Register / Profile / NotFound
-│       └── types/                 # TypeScript type definitions
-│
-└── docs/                          # Project documentation
-    ├── datasets/                  # Dataset specs, acquisition plans
-    ├── ml/                        # Training pipeline docs
-    └── deployment/                # Deployment guide (Render + Vercel)
-```
+All endpoints are under `/api/v1/`. Authentication is JWT Bearer token unless marked public.
+
+Interactive docs available at:
+- **Swagger UI**: `GET /api/docs/`
+- **ReDoc**: `GET /api/redoc/`
+- **OpenAPI schema**: `GET /api/schema/`
+
+### Auth — `/api/v1/auth/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/v1/auth/register/` | Public | Register new CUSTOMER account |
+| POST | `/api/v1/auth/login/` | Public | Login, returns access + refresh tokens |
+| POST | `/api/v1/auth/token/refresh/` | Public | Refresh access token |
+| GET / PATCH | `/api/v1/auth/profile/` | JWT | View or update own profile |
+| POST | `/api/v1/auth/logout/` | JWT | Blacklist refresh token |
+
+### Restaurants — `/api/v1/restaurants/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/restaurants/` | JWT | List restaurants |
+| POST | `/api/v1/restaurants/` | RESTAURANT_USER/ADMIN | Create restaurant |
+| GET | `/api/v1/restaurants/<id>/` | JWT | Get restaurant detail |
+| PATCH | `/api/v1/restaurants/<id>/` | Owner/ADMIN | Update restaurant |
+| DELETE | `/api/v1/restaurants/<id>/` | Owner/ADMIN | Delete restaurant |
+
+### Food Reports — `/api/v1/reports/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/reports/` | JWT | List reports (scoped by role) |
+| POST | `/api/v1/reports/` | CUSTOMER | Create new report (DRAFT) |
+| GET | `/api/v1/reports/<id>/` | Owner/REVIEWER/ADMIN | Get report detail |
+| PATCH | `/api/v1/reports/<id>/` | Owner (DRAFT only) | Update report |
+| DELETE | `/api/v1/reports/<id>/` | Owner (DRAFT only) | Delete report |
+| POST | `/api/v1/reports/<id>/submit/` | Owner | Submit report (DRAFT → SUBMITTED) |
+
+### AI Analysis — `/api/v1/reports/<id>/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/v1/reports/<id>/analyze/` | Owner/REVIEWER/ADMIN | Trigger AI visual assessment |
+| GET | `/api/v1/reports/<id>/analysis/` | Owner/REVIEWER/ADMIN | Get AI analysis result |
+
+### Complaints — `/api/v1/complaints/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/complaints/` | JWT | List complaints (scoped by role) |
+| POST | `/api/v1/complaints/` | CUSTOMER | File complaint against SUBMITTED report |
+| GET | `/api/v1/complaints/<id>/` | Owner/REVIEWER/ADMIN | Get complaint detail |
+| PATCH | `/api/v1/complaints/<id>/` | REVIEWER/ADMIN | Update status/priority/resolution |
+
+### Escalations — `/api/v1/escalations/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/escalations/` | REVIEWER/ADMIN | List escalations |
+| POST | `/api/v1/escalations/` | REVIEWER/ADMIN | Create escalation |
+| GET | `/api/v1/escalations/<id>/` | REVIEWER/ADMIN | Get escalation detail |
+| PATCH | `/api/v1/escalations/<id>/` | REVIEWER/ADMIN | Update escalation |
+
+### Feedback — `/api/v1/feedback/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/feedback/` | JWT | List own feedback |
+| POST | `/api/v1/feedback/` | CUSTOMER | Submit feedback (resolved complaint only) |
+| GET | `/api/v1/feedback/<id>/` | Owner/REVIEWER/ADMIN | Get feedback detail |
+
+### Notifications — `/api/v1/notifications/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/notifications/` | JWT | List own notifications |
+| PATCH | `/api/v1/notifications/<id>/` | Owner | Mark as read |
+
+### Analytics — `/api/v1/analytics/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/analytics/summary/` | REVIEWER/ADMIN | Aggregated platform overview |
+
+### Utility
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/healthz/` | Public | Container health check |
+| GET | `/api/docs/` | Public | Swagger UI |
+| GET | `/api/redoc/` | Public | ReDoc |
 
 ---
 
-## 🚀 Getting Started
+## AI / ML Pipeline
 
-### Prerequisites
+### Model
+- **Architecture**: MobileNetV3-Small with replaced classifier head (`in_features → 3 classes`)
+- **Model name / version**: `foodguard-quality-v1 / 1.0.0`
+- **Labels**: `normal`, `spoilage_indicator`, `mold_like_growth`
+- **Risk mapping**: `normal → LOW`, `spoilage_indicator / mold_like_growth → HIGH`
+- **Confidence threshold**: 0.70 (below → forced `HUMAN_REVIEW`)
 
-- Python 3.12+
-- Node.js 20+ (with npm)
-- Docker (for PostgreSQL)
+### Training Configuration (defaults)
+```
+img_size:              224
+epochs:                20
+batch_size:            32
+learning_rate:         3e-4
+optimizer:             AdamW
+weight_decay:          1e-4
+train / val / test:    70% / 15% / 15%
+freeze_backbone_epochs: 3
+early_stopping_patience: 5
+pretrained_backbone:   True (ImageNet)
+seed:                  42
+```
 
-### 1. Clone the repository
-
+### Training CLI
 ```bash
-git clone https://github.com/sindhujamerugu/FoodGuard-AI.git
-cd FoodGuard-AI
+python -m src.ml.train \
+  --manifest data/manifests/food_quality/manifest.jsonl \
+  --data-root data \
+  --output-dir models/food_quality \
+  --img-size 224 \
+  --epochs 20 \
+  --batch-size 32 \
+  --seed 42 \
+  --device cpu
 ```
 
-### 2. Start PostgreSQL
-
-```bash
-docker compose up -d
-docker compose ps   # verify foodguard_db_new is healthy on port 5434
-```
-
-### 3. Set up the backend
-
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate (Windows)
-.venv\Scripts\activate
-
-# Activate (macOS/Linux)
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run migrations
-python manage.py migrate
-
-# (Optional) Create development users
-python manage.py create_dev_users
-
-# Start Django server
-python manage.py runserver
-```
-
-Backend available at **http://127.0.0.1:8000**
-
-### 4. Set up the frontend
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Frontend available at **http://localhost:3000**
-
-### 5. Explore the API
-
-- **Swagger UI:** http://127.0.0.1:8000/api/docs/
-- **ReDoc:** http://127.0.0.1:8000/api/redoc/
-- **OpenAPI Schema:** http://127.0.0.1:8000/api/schema/
-- **Django Admin:** http://127.0.0.1:8000/admin/
-
----
-
-## 🔐 Authentication
-
-### JWT Configuration
-
-| Setting | Value |
-|---|---|
-| Access token lifetime | 30 minutes |
-| Refresh token lifetime | 7 days |
-| Rotation | Enabled |
-| Blacklist after rotation | Enabled |
-| Header | `Authorization: Bearer <token>` |
-
-### User Roles
-
-| Role | Description | Public Registration |
-|---|---|---|
-| `CUSTOMER` | Files food reports and complaints | ✅ Auto-assigned |
-| `RESTAURANT_USER` | Manages restaurant profile | ❌ Admin-assigned |
-| `REVIEWER` | Reviews reports and complaints | ❌ Admin-assigned |
-| `ADMIN` | Full platform management | ❌ Admin-assigned |
-
-### Auth Endpoints
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/register/` | Public | Create CUSTOMER account |
-| `POST` | `/api/v1/auth/login/` | Public | Obtain JWT tokens |
-| `POST` | `/api/v1/auth/token/refresh/` | Public | Rotate refresh token |
-| `GET` | `/api/v1/auth/profile/` | JWT | Current user profile |
-| `PATCH` | `/api/v1/auth/profile/` | JWT | Update preferred language |
-| `POST` | `/api/v1/auth/logout/` | JWT | Blacklist refresh token |
-
----
-
-## 📡 API Reference
-
-### Food Reports
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/reports/` | CUSTOMER | Create DRAFT report |
-| `GET` | `/api/v1/reports/` | JWT | List reports (scoped by role) |
-| `GET` | `/api/v1/reports/<id>/` | Owner / REVIEWER / ADMIN | Report detail |
-| `PATCH` | `/api/v1/reports/<id>/` | Owner (DRAFT only) | Update DRAFT report |
-| `DELETE` | `/api/v1/reports/<id>/` | Owner (DRAFT only) | Delete DRAFT report |
-| `POST` | `/api/v1/reports/<id>/submit/` | Owner (DRAFT only) | Submit for review |
-
-**Report Lifecycle:**
-
-```
-DRAFT → SUBMITTED → UNDER_REVIEW → RESOLVED / CLOSED
-```
-
-- Created as `DRAFT`; customer may edit/delete while in DRAFT
-- `POST /submit/` requires an image, title, description, and restaurant
-- Once submitted, the customer cannot edit, delete, or re-submit
-- `customer` is always derived from `request.user` — never from client payload
-
-**Image Upload Rules:**
-
-| Rule | Detail |
-|---|---|
-| Allowed formats | JPEG, JPG, PNG |
-| Maximum size | 5 MB |
-| Validation | Extension + content-type + Pillow readability |
-| Required for submit | Yes |
-
-### AI Analysis
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/reports/<id>/analyze/` | Owner / REVIEWER / ADMIN | Run AI analysis |
-| `GET` | `/api/v1/reports/<id>/analysis/` | Owner / REVIEWER / ADMIN | Get analysis result |
-
-> ⚠️ **Preliminary visual assessment only.** Results are NOT scientific food-safety certifications.
-
-**AI Architecture:**
-
-```
-AIAnalysisService
-        │
-        ▼
-_run_real_analysis()  ──▶  ai_analysis.inference.run_inference()  ──▶  model.pt
-        │
-        ▼ (when model.pt / label_map.json are absent)
-   deterministic mock result
-```
-
-| Setting | Env Var | Default | Meaning |
-|---|---|---|---|
-| Model directory | `FOOD_QUALITY_MODEL_DIR` | `models/food_quality/` | Location of `model.pt`, `label_map.json`, `train_config.json` |
-| Confidence threshold | `AI_CONFIDENCE_THRESHOLD` | `0.70` | Below this → forced `HUMAN_REVIEW` |
-
-**Model Classes:** `normal` · `spoilage_indicator` · `mold_like_growth` (3-class MobileNetV3-Small)
-
-> ⚠️ The current model is trained on **synthetic geometric patterns** for pipeline verification only. It does not contain real food images and must not be cited as real-world accuracy. See `docs/ml/TRAINING_PIPELINE.md`.
-
-### Complaints
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/complaints/` | CUSTOMER | File complaint against a submitted report |
-| `GET` | `/api/v1/complaints/` | JWT | List (scoped by role) |
-| `GET` | `/api/v1/complaints/<id>/` | Owner / REVIEWER / ADMIN | Complaint detail |
-| `PATCH` | `/api/v1/complaints/<id>/` | REVIEWER / ADMIN | Update status/priority/notes |
-
-**Complaint Lifecycle:**
-
-```
-SUBMITTED → UNDER_REVIEW → RESOLVED → CLOSED
-               ↑ (revert allowed)
-           UNDER_REVIEW → SUBMITTED
-```
-
-**Categories:** `FOOD_QUALITY` · `SPOILAGE` · `FOREIGN_OBJECT` · `HYGIENE` · `TASTE_OR_ODOR` · `OTHER`
-
-**Business Rules:**
-- One complaint per FoodReport (unique DB constraint + service guard)
-- `customer` and `restaurant` derived server-side — never from client payload
-- Can only be filed against a `SUBMITTED` FoodReport (not DRAFT)
-
-### Escalation
-
-> ⚠️ **Application-level workflow only.** Escalation levels are internal platform tiers — NOT mapped to any government authority or regulatory body.
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/escalations/` | REVIEWER / ADMIN | Create escalation |
-| `GET` | `/api/v1/escalations/` | REVIEWER / ADMIN | List all |
-| `GET` | `/api/v1/escalations/<id>/` | REVIEWER / ADMIN | Detail |
-| `PATCH` | `/api/v1/escalations/<id>/` | REVIEWER / ADMIN | Update workflow |
-
-**Levels:** `LEVEL_1` (first review) → `LEVEL_2` (senior) → `LEVEL_3` (highest)  
-**Lifecycle:** `PENDING → IN_REVIEW → RESOLVED → CLOSED`
-
-### Restaurants
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/restaurants/` | JWT | List active restaurants |
-| `POST` | `/api/v1/restaurants/` | RESTAURANT_USER / ADMIN | Create restaurant |
-| `GET` | `/api/v1/restaurants/<id>/` | JWT | Restaurant detail |
-| `PATCH` | `/api/v1/restaurants/<id>/` | Owner / REVIEWER / ADMIN | Update |
-| `DELETE` | `/api/v1/restaurants/<id>/` | Owner / ADMIN | Delete |
-
-### Feedback
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/feedback/` | CUSTOMER | Rate a resolved/closed complaint (1–5) |
-| `GET` | `/api/v1/feedback/` | JWT | List (scoped by role) |
-| `GET` | `/api/v1/feedback/<id>/` | Owner / REVIEWER / ADMIN | Detail |
-
-### Notifications
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/notifications/` | JWT | Own notifications (newest first) |
-| `PATCH` | `/api/v1/notifications/<id>/` | Owner | Toggle `is_read` |
-
-**Events:** Report submitted, AI analysis completed, complaint submitted/status changed, escalation created/updated.
-
-### Analytics
-
-| Method | URL | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/analytics/summary/` | REVIEWER / ADMIN | Platform-wide statistics |
-
----
-
-## 🌐 Multilingual Support
-
-### Supported Languages
-
-| Code | Language |
-|---|---|
-| `en` | English (default) |
-| `te` | Telugu |
-| `hi` | Hindi |
-| `ta` | Tamil |
-| `kn` | Kannada |
-| `mr` | Marathi |
-
-### Implementation Status
-
-**Frontend:** 288 translation keys per language across 6 dictionaries — covers navigation, auth pages, dashboard, badges, states, and customer portal. Language persisted to `localStorage` and synced to backend.
-
-**Backend:** `User.preferred_language` stored per user. AI analysis messages and 3/7 notification event types translated via static string catalog (`translation/strings.py`). `TranslationService` abstraction exists for future real-time translation of user-generated content (provider currently set to `"none"`).
-
-**User-entered content** (report titles, complaint descriptions, restaurant names) is always **preserved exactly as entered** — never auto-translated or overwritten.
-
----
-
-## ⚙️ Environment Variables
-
-| Variable | Default (dev) | Description |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | insecure dev key | Django secret key (**must change in production**) |
-| `DJANGO_DEBUG` | `True` | Debug mode |
-| `DATABASE_NAME` | `foodguard_db` | PostgreSQL database |
-| `DATABASE_USER` | `foodguard_user` | PostgreSQL user |
-| `DATABASE_PASSWORD` | `foodguard_password` | PostgreSQL password |
-| `DATABASE_HOST` | `127.0.0.1` | PostgreSQL host |
-| `DATABASE_PORT` | `5434` | PostgreSQL port |
-| `DATABASE_URL` | — | Full connection string (overrides individual DB vars) |
-| `CORS_ALLOWED_ORIGINS` | localhost:3000–3003 | Frontend origins |
-| `FOOD_QUALITY_MODEL_DIR` | `models/food_quality/` | AI model artifacts directory |
-| `AI_CONFIDENCE_THRESHOLD` | `0.70` | Minimum confidence for non-HUMAN_REVIEW result |
-| `TRANSLATION_PROVIDER` | `none` | Translation provider (`none` = no real translation) |
-| `SERVE_MEDIA_VIA_DJANGO` | `True` | Serve uploaded images via Django (disable when CDN is set up) |
-
----
-
-## 🧪 Running Tests
-
-### Frontend (161 tests)
-
-```bash
-cd frontend
-
-# Run all tests
-npm test
-
-# Run tests with verbose output
-npx vitest run --reporter=verbose
-
-# TypeScript type check
-npx tsc --noEmit
-
-# Lint
-npm run lint
-
-# Production build
-npm run build
-```
-
-**Test coverage includes:** auth/login flow, role-based routing, customer dashboard (20 tests), report CRUD, complaint flows, form validation, language switching (6-language parity), restaurant localization, format utilities, and schema validation.
-
-### Backend (~230+ tests)
-
-Requires a running PostgreSQL instance (`docker compose up -d`).
-
-```bash
-# Full backend suite
-python manage.py test --verbosity 1
-
-# Individual apps
-python manage.py test users --verbosity 2           # 24 tests
-python manage.py test restaurants --verbosity 2      # 22 tests
-python manage.py test food_reports --verbosity 2     # 39 tests
-python manage.py test ai_analysis --verbosity 2      # AI mock + real model tests
-python manage.py test complaints --verbosity 2       # 38 tests
-python manage.py test escalation --verbosity 2       # 38 tests
-python manage.py test feedback --verbosity 2         # 30 tests
-python manage.py test notifications --verbosity 2    # 13 tests
-python manage.py test analytics --verbosity 2        # 8 tests
-python manage.py test translation --verbosity 2      # 6 tests
-```
-
-### ML Pipeline (72 tests — no database needed)
-
-```bash
-# Dataset manifest/leakage tooling (40 tests)
-python -m unittest src.data.dataset_tools.tests.test_schema \
-  src.data.dataset_tools.tests.test_validate_manifest \
-  src.data.dataset_tools.tests.test_check_leakage
-
-# ML pipeline (72 tests)
-python -m unittest src.ml.tests.test_labels src.ml.tests.test_config \
-  src.ml.tests.test_metrics src.ml.tests.test_splitting \
-  src.ml.tests.test_manifest_dataset src.ml.tests.test_transforms \
-  src.ml.tests.test_model src.ml.tests.test_checkpointing \
-  src.ml.tests.test_artifacts src.ml.tests.test_train_integration
-```
-
-### Translation (45 tests — no database needed)
-
-```bash
-python -m unittest translation.test_strings            # 18 tests
-python -m unittest ai_analysis.test_translation         # 16 tests
-python -m unittest notifications.test_translation       # 11 tests
-```
-
----
-
-## 🚢 Deployment
-
-**Full guide:** `docs/deployment/DEPLOYMENT.md`
-
-### Backend → Render
-
-- `render.yaml` — Render Blueprint (native Python runtime + managed PostgreSQL)
-- `requirements-render.txt` — includes PyTorch for real inference
-- Build step regenerates the synthetic development model on each deploy
-- `GET /healthz/` health check endpoint
-- WhiteNoise serves static files; Django serves media
-
-### Frontend → Vercel
-
-- `frontend/vercel.json` — SPA rewrite for client-side routing
-- Connect to the Render backend via `VITE_API_URL` environment variable
-
-### Docker (alternative)
-
-```bash
-docker compose up -d                          # PostgreSQL + backend
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py bootstrap_admin
-```
-
-> **Note:** The Docker path has not been tested end-to-end in this project's development. Use the Render + Vercel path for a verified deployment.
-
----
-
-## 🔒 Security
-
-- **JWT with rotation + blacklisting** — access tokens expire in 30 minutes
-- **Production hardening** — HSTS, SSL redirect, secure cookies when `DEBUG=False`
-- **Insecure secret key blocked** — server refuses to start with dev key in production
-- **Rate limiting** — 10/min on auth endpoints
-- **Image validation** — extension + content-type + Pillow readability check
-- **Server-side ownership** — `customer`, `restaurant`, `original_language` always derived from `request.user`
-- **Randomized filenames** — UUID-based image paths prevent URL guessing
-- **Upload size limits** — 6 MB at Django level, 5 MB at application level
-- **CORS** — explicit allowed origins, not wildcard
-
----
-
-## 📝 Frontend Routes
-
-| Path | Role | Page |
-|---|---|---|
-| `/` | Public | Landing page |
-| `/login` | Guest only | Login |
-| `/register` | Guest only | Register |
-| `/profile` | Authenticated | User profile |
-| `/dashboard` | CUSTOMER | Customer dashboard |
-| `/reports` | CUSTOMER | Reports list |
-| `/reports/new` | CUSTOMER | Create report |
-| `/reports/:id` | CUSTOMER | Report detail |
-| `/reports/:id/edit` | CUSTOMER | Edit DRAFT report |
-| `/reports/:id/ai-analysis` | CUSTOMER | AI analysis result |
-| `/complaints` | CUSTOMER | Complaints list |
-| `/complaints/new` | CUSTOMER | File complaint |
-| `/complaints/:id` | CUSTOMER | Complaint detail |
-| `/restaurant` | RESTAURANT_USER | Restaurant dashboard |
-| `/restaurant/new` | RESTAURANT_USER | Create restaurant |
-| `/restaurant/:id/edit` | RESTAURANT_USER | Edit restaurant |
-| `/reviewer` | REVIEWER / ADMIN | Reviewer dashboard |
-| `/reviewer/reports` | REVIEWER / ADMIN | All reports |
-| `/reviewer/reports/:id` | REVIEWER / ADMIN | Report review |
-| `/reviewer/complaints` | REVIEWER / ADMIN | All complaints |
-| `/reviewer/complaints/:id` | REVIEWER / ADMIN | Complaint management |
-| `/reviewer/restaurants` | REVIEWER / ADMIN | Restaurant management |
-| `/admin` | ADMIN | Admin dashboard |
-
----
-
-## 🤖 ML Pipeline
-
-### Architecture
-
-```
-src/data/synthetic/     → generates labeled synthetic images
-src/data/dataset_tools/ → manifest validation + leakage detection
-src/ml/train.py         → full training pipeline (MobileNetV3-Small)
-src/ml/evaluate.py      → per-class metrics + confusion matrix
-ai_analysis/inference.py → thread-safe singleton model inference
-```
+Artifacts written to `--output-dir`:
+- `model.pt` — model weights + state_dict
+- `label_map.json` — label ↔ index mapping
+- `train_config.json` — all hyperparameters + metadata
 
 ### Current Status
+> ⚠️ A **synthetic development model** exists (trained on geometric shapes) to verify the pipeline end-to-end. It does **not** classify real food images accurately. Real model training is blocked on completing the food quality dataset — see `docs/datasets/ACQUISITION_PLAN.md`.
 
-| Component | Status |
+The Render deploy blueprint auto-regenerates this synthetic model on every deploy so `model.pt` always exists and the service stays in real (not mock) mode.
+
+### Inference Engine
+The inference engine (`ai_analysis/inference.py`) is a **thread-safe singleton**:
+1. Loads artifacts once via double-checked locking
+2. Lazily imports PyTorch (Django starts without it)
+3. Runs eval-mode forward pass → softmax → confidence check
+4. Returns structured result dict — **never raises** (all exceptions → HUMAN_REVIEW fallback)
+
+---
+
+## Frontend
+
+React 19 SPA deployed to Vercel. Connect to backend via `VITE_API_URL` env var.
+
+### Pages by Role
+| Role | Pages |
 |---|---|
-| Training pipeline | ✅ Complete and tested (72 tests) |
-| Inference engine | ✅ Complete (thread-safe, CPU-only) |
-| Synthetic dev model | ✅ Exists (for pipeline verification) |
-| Real food dataset | ❌ Not collected (see `docs/datasets/`) |
-| Real-world evaluation | ❌ Not performed |
-| Production model | ❌ Requires real dataset |
+| Public | Landing, Login, Register |
+| All authenticated | Profile |
+| CUSTOMER | Dashboard, My Reports, Submit Report, Report Detail, My Complaints, File Complaint |
+| RESTAURANT_USER | Restaurant Dashboard, Create/Edit Restaurant |
+| REVIEWER | Reviewer Dashboard, All Reports, All Complaints, Escalations |
+| ADMIN | Admin Dashboard, full access |
 
-### Training a Model
+### Key Components
+- `AIAnalysisCard` — displays AI result with confidence bar and mandatory disclaimer
+- `ImageUploader` — drag-and-drop image upload with preview
+- `ProtectedRoute / GuestRoute / RoleGuard` — JWT-based route protection
+- `StatusBadge / PriorityBadge / RoleBadge` — visual status indicators
+- `AppShell / Sidebar / Topbar` — main layout scaffold
 
+### i18n
+6 complete language dictionaries with 288 keys each:
+- English (`en`), Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Marathi (`mr`)
+
+Language preference is persisted to `localStorage` and synced to the user's backend profile on change.
+
+### Local Dev
 ```bash
-# Generate synthetic dataset (for pipeline testing)
-python -m src.data.synthetic.generate_dataset
+cd frontend
+npm install
+npm run dev          # Vite dev server on http://localhost:3000
+```
 
-# Train
+Set `VITE_API_URL=http://localhost:8001` in `frontend/.env.local`.
+
+---
+
+## Data Pipeline
+
+### Manifest Format (JSONL)
+Each line in a manifest file is a JSON object:
+```json
+{
+  "image_path": "raw/food_quality/licensed_public/fruits_360/fresh_apple_001.jpg",
+  "label": "normal",
+  "item_id": "fruits360_apple_001",
+  "split": "train",
+  "source": "fruits_360"
+}
+```
+
+### Data Directory Structure
+```
+data/
+├── raw/food_quality/
+│   ├── licensed_public/       # Public datasets (fruits_360, meatscan, mobilemold, swoyam2609)
+│   ├── pilot_consented/       # Future pilot captures with consent
+│   └── team_capture/          # Team-captured images
+├── manifests/food_quality/    # JSONL manifest files
+├── processed/food_quality/    # Preprocessed outputs
+├── splits/food_quality/       # Split assignment files
+├── holdout/                   # Real-world eval images (never used in training)
+└── synthetic/                 # Synthetic geometric images for pipeline testing
+```
+
+### Leakage Prevention
+`splitting.py` uses grouped stratified splitting by `item_id` — images of the same physical item always end up in the same split. `assert_no_item_leakage()` verifies this at runtime.
+
+---
+
+## Getting Started (Local Dev)
+
+### Prerequisites
+- Python 3.12+
+- Docker Desktop (for PostgreSQL)
+- Node.js 20+ (for frontend)
+- Git
+
+### 1. Clone & Set Up Python Environment
+```bash
+git clone <repo-url>
+cd FoodGuard-AI
+
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
+
+pip install -r requirements.txt
+```
+
+### 2. Start PostgreSQL via Docker
+```bash
+docker-compose up -d foodguard_db_new
+```
+This starts PostgreSQL 16 on port **5434** with `foodguard_db / foodguard_user / foodguard_password`.
+
+### 3. Configure Environment
+```bash
+copy .env.example .env
+# Edit .env if needed — defaults work for local dev
+```
+
+### 4. Run Migrations & Bootstrap
+```bash
+python manage.py migrate
+python manage.py bootstrap_admin    # creates admin account from .env vars
+python manage.py create_dev_users   # optional: seeded test accounts
+python manage.py seed_restaurants   # optional: sample restaurant data
+```
+
+### 5. Start the Dev Server
+```bash
+python manage.py runserver 8001
+```
+
+API available at `http://localhost:8001/api/v1/`  
+Swagger UI at `http://localhost:8001/api/docs/`
+
+### 6. (Optional) Install PyTorch for Real Inference
+```bash
+# See pip_torch_install.txt for exact commands
+pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
+
+# Train a synthetic model to verify the pipeline
+python -m src.data.synthetic.generate_dataset
 python -m src.ml.train \
   --manifest data/synthetic/food_quality/manifest.jsonl \
   --data-root data \
@@ -662,46 +498,246 @@ python -m src.ml.train \
   --img-size 128 \
   --epochs 12 \
   --batch-size 16 \
-  --seed 20260927 \
+  --seed 42 \
   --device cpu
 ```
 
-See `docs/ml/TRAINING_PIPELINE.md` for full documentation.
+### 7. Start the Frontend
+```bash
+cd frontend
+npm install
+
+# Create frontend/.env.local
+echo VITE_API_URL=http://localhost:8001 > .env.local
+
+npm run dev
+```
+
+Frontend at `http://localhost:3000`
 
 ---
 
-## 📚 Documentation
+## Environment Variables
 
-| Document | Location |
+Copy `.env.example` to `.env`. Key variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | *(required in prod)* | Django secret key — generate with `secrets.token_urlsafe(50)` |
+| `DJANGO_DEBUG` | `True` | Set `False` in production |
+| `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | Comma-separated allowed hosts |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | *(empty)* | Comma-separated origins (required in prod) |
+| `DATABASE_URL` | *(empty)* | Full Postgres URL — overrides individual DB vars when set |
+| `DATABASE_NAME` | `foodguard_db` | PostgreSQL database name |
+| `DATABASE_USER` | `foodguard_user` | PostgreSQL username |
+| `DATABASE_PASSWORD` | `foodguard_password` | PostgreSQL password |
+| `DATABASE_HOST` | `127.0.0.1` | PostgreSQL host |
+| `DATABASE_PORT` | `5434` | PostgreSQL port |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated frontend origins |
+| `FOOD_QUALITY_MODEL_DIR` | `models/food_quality/` | Path to trained model artifacts |
+| `AI_CONFIDENCE_THRESHOLD` | `0.70` | Minimum confidence for non-HUMAN_REVIEW result |
+| `TRANSLATION_PROVIDER` | `none` | Translation provider (currently only `none`) |
+| `SERVE_MEDIA_VIA_DJANGO` | `True` | Whether Django serves `/media/` directly |
+| `DJANGO_ADMIN_EMAIL` | *(env var)* | Bootstrap admin email |
+| `DJANGO_ADMIN_PASSWORD` | *(env var)* | Bootstrap admin password |
+
+---
+
+## Deployment
+
+### Backend → Render
+
+Deploy with the included `render.yaml` Blueprint:
+1. Push repo to GitHub/GitLab
+2. In Render dashboard: **New + → Blueprint** → point at this repo
+3. Set the following env vars in the Render dashboard:
+   - `DJANGO_ALLOWED_HOSTS` — your `.onrender.com` hostname
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` — `https://<your-backend>.onrender.com,https://<your-frontend>.vercel.app`
+   - `CORS_ALLOWED_ORIGINS` — `https://<your-frontend>.vercel.app`
+   - `DJANGO_ADMIN_EMAIL`, `DJANGO_ADMIN_PASSWORD`
+
+The blueprint automatically:
+- Creates a managed PostgreSQL instance
+- Installs PyTorch (CPU) from `requirements-render.txt`
+- Trains a synthetic development model
+- Runs `collectstatic`, `migrate`, `bootstrap_admin`
+- Starts gunicorn with 3 workers
+
+Full walkthrough in `docs/deployment/DEPLOYMENT.md`.
+
+### Frontend → Vercel
+
+```bash
+cd frontend
+# Set VITE_API_URL=https://<your-backend>.onrender.com in Vercel project settings
+vercel --prod
+```
+
+`frontend/vercel.json` contains the SPA rewrite rule for client-side routing.
+
+---
+
+## Testing
+
+### Backend Tests
+```bash
+# All tests
+python manage.py test
+
+# Specific app
+python manage.py test ai_analysis
+python manage.py test complaints
+```
+
+Approx **230 backend tests** across 10 apps.
+
+### ML Pipeline Tests (no DB required)
+```bash
+python -m pytest src/ml/tests/ -v
+```
+**72 ML pipeline unit tests** covering training config, model architecture, splitting, manifest loading, artifacts, evaluation metrics.
+
+### Dataset Tooling Tests
+```bash
+python -m pytest src/data/dataset_tools/tests/ -v
+```
+**40 dataset tooling tests**.
+
+### Translation Tests
+```bash
+python manage.py test translation
+```
+**45 translation tests**.
+
+### Frontend Tests
+```bash
+cd frontend
+npm run test         # watch mode (Vitest)
+npm run test -- --run # single run
+```
+**161 frontend tests** with React Testing Library.
+
+---
+
+## Project Structure
+
+```
+FoodGuard-AI/
+│
+├── config/                   # Django project config (settings, urls, wsgi, asgi)
+├── users/                    # Custom User model, JWT auth views
+├── restaurants/              # Restaurant CRUD + claim workflow
+├── food_reports/             # Core food report model + image validation
+├── ai_analysis/              # AI inference engine + AIAnalysis model
+├── complaints/               # Formal complaint workflow
+├── escalation/               # 3-tier internal escalation
+├── feedback/                 # Customer satisfaction ratings
+├── notifications/            # In-app notification system
+├── analytics/                # Read-only analytics aggregation
+├── translation/              # Pluggable translation facade
+│
+├── src/
+│   ├── ml/                   # ML training pipeline
+│   │   ├── model.py          #   MobileNetV3-Small architecture
+│   │   ├── config.py         #   TrainingConfig dataclass
+│   │   ├── train.py          #   Training loop CLI
+│   │   ├── splitting.py      #   Grouped stratified split
+│   │   ├── manifest_dataset.py #  PyTorch Dataset from JSONL manifest
+│   │   ├── artifacts.py      #   Save model.pt / label_map / train_config
+│   │   ├── evaluate.py       #   Evaluation + metrics
+│   │   └── tests/            #   72 unit tests
+│   └── data/
+│       ├── synthetic/        #   Synthetic dataset generator (pipeline testing)
+│       └── dataset_tools/    #   Manifest validation + leakage detection
+│
+├── data/
+│   ├── raw/food_quality/     # Source images (licensed_public, pilot_consented, team_capture)
+│   ├── manifests/            # JSONL manifest files
+│   ├── processed/            # Preprocessed outputs
+│   ├── splits/               # Split assignment files
+│   ├── holdout/              # Real-world eval images
+│   └── synthetic/            # Synthetic pilot fixtures
+│
+├── models/food_quality/      # Trained model artifacts (model.pt, label_map.json, train_config.json)
+│
+├── frontend/                 # React 19 SPA
+│   ├── src/
+│   │   ├── api/              #   Axios API clients (7 modules)
+│   │   ├── components/       #   60+ components (ai, auth, complaints, layout, reports, ui...)
+│   │   ├── context/          #   AuthContext, LanguageContext
+│   │   ├── hooks/            #   Domain-specific data hooks
+│   │   ├── i18n/             #   6 language dictionaries (288 keys × 6 languages)
+│   │   ├── pages/            #   Pages by role (customer, reviewer, restaurant, admin, public)
+│   │   ├── lib/              #   HTTP client, Zod schemas, formatters
+│   │   └── types/            #   TypeScript type definitions
+│   └── vercel.json           # Vercel SPA rewrite config
+│
+├── docs/
+│   ├── datasets/             # Dataset acquisition, annotation, and spec docs
+│   ├── deployment/           # Render + Vercel deployment guide
+│   └── ml/                   # ML training pipeline docs
+│
+├── docker-compose.yml        # Local dev: PostgreSQL 16 + Django backend
+├── Dockerfile                # Production container image
+├── render.yaml               # Render Blueprint (one-click backend deploy)
+├── requirements.txt          # Backend dependencies (no PyTorch)
+├── requirements-render.txt   # Backend + PyTorch (CPU) for Render
+├── .env.example              # Environment variable reference
+└── manage.py                 # Django management entry point
+```
+
+---
+
+## Known Limitations & Roadmap
+
+### ⚠️ Current Limitations
+
+| Area | Status |
 |---|---|
-| Deployment Guide | `docs/deployment/DEPLOYMENT.md` |
-| ML Training Pipeline | `docs/ml/TRAINING_PIPELINE.md` |
-| Dataset Acquisition Plan | `docs/datasets/ACQUISITION_PLAN.md` |
-| Dataset Quality Plan | `docs/datasets/quality_dataset_plan.md` |
-| Dataset Registry | `docs/datasets/dataset_registry.md` |
-| API Docs (interactive) | `http://127.0.0.1:8000/api/docs/` |
+| **Real food model** | ❌ Synthetic model only — real food dataset collection in progress |
+| **Production media** | ⚠️ Django serves `/media/` directly — no CDN/object storage yet (ephemeral on Render) |
+| **Real-time notifications** | ⚠️ Polling only — no WebSocket or SSE |
+| **Translation** | ⚠️ `NullProvider` only — no live translation; user content returned as-entered |
+| **Confidence calibration** | ⚠️ Raw softmax scores (uncalibrated) |
+| **E2E tests** | ❌ No end-to-end tests |
+| **Partial i18n** | ⚠️ Auth/nav translated; many form body strings English-only |
+
+### 🗺️ Roadmap
+
+1. **Real food quality dataset** — complete acquisition from licensed_public sources + pilot captures → train real `foodguard-quality-v1` model
+2. **Object storage** — S3/R2/GCS for persistent media (replaces ephemeral Render disk)
+3. **Real translation provider** — wire Google Translate / Azure Cognitive Services / LibreTranslate into `translation/services.py`
+4. **WebSocket notifications** — Django Channels for real-time notification delivery
+5. **Confidence calibration** — temperature scaling post-training
+6. **E2E tests** — Playwright test suite for critical user flows
+7. **Complete i18n** — translate remaining form strings in all 6 languages
+8. **Nginx / CDN** — replace Django media serving with nginx reverse proxy
 
 ---
 
-## 🚧 Known Limitations
+## Documentation
 
-- **No real food-trained model** — the synthetic development model verifies the pipeline works but provides no real-world accuracy
-- **No production deployment** — Render and Vercel configs are prepared but nothing is live
-- **Ephemeral media on Render** — uploaded images don't survive redeployment without a persistent disk
-- **Partial i18n** — dashboard, auth, and navigation are translated; many form bodies and table content remain English-only
-- **No E2E tests** — unit/integration tests exist but no Playwright/Cypress flows
-- **Translation quality** — Telugu/Hindi translations are MVP-quality, not professionally reviewed
-- **No real-time notifications** — polling-based; no WebSocket/SSE infrastructure
-- **Confidence scores** — raw softmax, not calibrated probabilities
+| Document | Path |
+|---|---|
+| Deployment guide (Render + Vercel) | `docs/deployment/DEPLOYMENT.md` |
+| ML training pipeline | `docs/ml/TRAINING_PIPELINE.md` |
+| Dataset acquisition plan | `docs/datasets/ACQUISITION_PLAN.md` |
+| Dataset spec (JSONL schema) | `docs/datasets/DATASET_SPEC.md` |
+| Annotation guide | `docs/datasets/ANNOTATION_GUIDE.md` |
+| Dataset registry | `docs/datasets/dataset_registry.md` |
+| Dataset sources | `docs/datasets/dataset_sources.md` |
+| FSSAI data sources | `docs/datasets/fssai_sources.md` |
+| MeatScan acquisition | `docs/datasets/meatscan_acquisition.md` |
+| Research report | `docs/datasets/FOODGUARD_AI_2_RESEARCH_REPORT.md` |
+| Capture metadata template | `docs/datasets/CAPTURE_METADATA_TEMPLATE.md` |
+| Collection README | `docs/datasets/COLLECTION_README.md` |
 
 ---
 
-## 👩‍💻 Authors
+## License
 
-- **Sindhuja Merugu** — [@sindhujamerugu](https://github.com/sindhujamerugu)
+See repository license file.
 
 ---
 
-## 📄 License
 
-This project is proprietary. All rights reserved.

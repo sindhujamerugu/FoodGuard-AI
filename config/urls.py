@@ -54,6 +54,9 @@ urlpatterns = [
 
     # Analytics endpoints: /api/v1/analytics/
     path("api/v1/analytics/", include("analytics.urls", namespace="analytics")),
+
+    # Food Safety Officers (Prototype): /api/v1/
+    path("api/v1/", include("food_safety_officers.urls", namespace="food_safety_officers")),
 ]
 
 # Serve uploaded media files. Always on in development (DEBUG=True); in

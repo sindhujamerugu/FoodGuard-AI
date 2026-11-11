@@ -1,6 +1,6 @@
 export type UserRole = 'CUSTOMER' | 'RESTAURANT_USER' | 'REVIEWER' | 'ADMIN'
 
-export type LanguageCode = 'en' | 'te' | 'hi' | 'ta' | 'kn' | 'mr'
+export type LanguageCode = 'en' | 'te' | 'hi' | 'ta' | 'kn' | 'mr' | 'ml'
 
 export const LANGUAGE_LABELS: Record<LanguageCode, string> = {
   en: 'English',
@@ -9,6 +9,7 @@ export const LANGUAGE_LABELS: Record<LanguageCode, string> = {
   ta: 'Tamil',
   kn: 'Kannada',
   mr: 'Marathi',
+  ml: 'Malayalam',
 }
 
 export const NATIVE_LANGUAGE_LABELS: Record<LanguageCode, string> = {
@@ -18,8 +19,19 @@ export const NATIVE_LANGUAGE_LABELS: Record<LanguageCode, string> = {
   ta: 'தமிழ்',
   kn: 'ಕನ್ನಡ',
   mr: 'मराठी',
+  ml: 'മലയാളം',
 }
 
+/** Native-script labels for all UI languages including Malayalam (ml = UI-only). */
+export const UI_NATIVE_LABELS: Record<string, string> = {
+  en: 'English',
+  te: 'తెలుగు',
+  hi: 'हिन्दी',
+  ta: 'தமிழ்',
+  kn: 'ಕನ್ನಡ',
+  mr: 'मराठी',
+  ml: 'മലയാളം',
+}
 /** Full profile shape returned by GET /api/v1/auth/profile/ */
 export interface User {
   id: number

@@ -16,8 +16,13 @@ import ReportEdit from '@/pages/customer/ReportEdit'
 import ReportDetail from '@/pages/customer/ReportDetail'
 import ReportAIAnalysis from '@/pages/customer/ReportAIAnalysis'
 import ComplaintsList from '@/pages/customer/ComplaintsList'
+import ComplaintWizard from '@/pages/customer/ComplaintWizard'
 import ComplaintCreate from '@/pages/customer/ComplaintCreate'
 import ComplaintDetail from '@/pages/customer/ComplaintDetail'
+import Notifications from '@/pages/customer/Notifications'
+import LanguageSettings from '@/pages/customer/LanguageSettings'
+import FeedbackForm from '@/pages/customer/FeedbackForm'
+import MyFeedback from '@/pages/customer/MyFeedback'
 
 import RestaurantDashboard from '@/pages/restaurant/RestaurantDashboard'
 import RestaurantCreate from '@/pages/restaurant/RestaurantCreate'
@@ -140,6 +145,16 @@ export default function App() {
         element={
           <ProtectedRoute>
             <RoleGuard allow={['CUSTOMER']}>
+              <ComplaintWizard />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/complaints/new/simple"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['CUSTOMER']}>
               <ComplaintCreate />
             </RoleGuard>
           </ProtectedRoute>
@@ -151,6 +166,52 @@ export default function App() {
           <ProtectedRoute>
             <RoleGuard allow={['CUSTOMER']}>
               <ComplaintDetail />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Notifications */}
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['CUSTOMER']}>
+              <Notifications />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Language settings */}
+      <Route
+        path="/language-settings"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['CUSTOMER']}>
+              <LanguageSettings />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Feedback */}
+      <Route
+        path="/feedback/new"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['CUSTOMER']}>
+              <FeedbackForm />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-feedback"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['CUSTOMER']}>
+              <MyFeedback />
             </RoleGuard>
           </ProtectedRoute>
         }

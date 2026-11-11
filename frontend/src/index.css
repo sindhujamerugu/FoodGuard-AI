@@ -164,3 +164,11 @@ body {
     transform: none !important;
   }
 }
+
+/* Hide scrollbar on tab rows (horizontal scroll still works) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

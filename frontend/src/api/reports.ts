@@ -3,12 +3,23 @@ import type { FoodReport, FoodReportCreatePayload, FoodReportUpdatePayload } fro
 
 function toFormData(payload: FoodReportCreatePayload | FoodReportUpdatePayload): FormData {
   const form = new FormData()
+
   if ('restaurant' in payload && payload.restaurant !== undefined) {
     form.append('restaurant', String(payload.restaurant))
   }
-  if (payload.title !== undefined) form.append('title', payload.title)
-  if (payload.description !== undefined) form.append('description', payload.description)
-  if (payload.image) form.append('image', payload.image)
+  if (payload.title !== undefined)        form.append('title', payload.title)
+  if (payload.description !== undefined)  form.append('description', payload.description)
+  if (payload.image)                      form.append('image', payload.image)
+
+  // Location coordinates — only append when both are non-null numbers.
+  // The backend serializer requires both or neither, so we never send one
+  // without the other. Null / undefined → field simply omitted → backend
+  // stores NULL (nullable column).
+  if (payload.location_lat != null && payload.location_lng != null) {
+    form.append('location_lat', String(payload.location_lat))
+    form.append('location_lng', String(payload.location_lng))
+  }
+
   return form
 }
 

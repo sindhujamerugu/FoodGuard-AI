@@ -29,7 +29,7 @@ import { formatDate, initials } from '@/lib/format'
 import { toApiError } from '@/types/errors'
 import {
   LANGUAGE_LABELS,
-  NATIVE_LANGUAGE_LABELS,
+  UI_NATIVE_LABELS,
   type LanguageCode,
 } from '@/types/user'
 import {
@@ -184,21 +184,39 @@ export default function Profile() {
   return (
     <AppShell title={t('profile.title')}>
       <div className="mx-auto max-w-3xl space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{t('profile.title')}</h1>
-            <p className="mt-1 text-sm text-neutral-500">{t('profile.subtitle')}</p>
+        {/* ── Premium Hero Banner ── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 p-6 shadow-lg sm:p-8">
+          <div className="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+          <div className="pointer-events-none absolute -bottom-8 left-1/3 size-36 rounded-full bg-white/5 blur-2xl" aria-hidden="true" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            {/* Avatar + name */}
+            <div className="flex items-center gap-4">
+              <div
+                className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white backdrop-blur-sm ring-2 ring-white/30 select-none sm:size-20 sm:text-3xl"
+                aria-hidden="true"
+              >
+                {initials(user.first_name, user.last_name)}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary-200">{t('role.customer')}</p>
+                <h1 className="text-2xl font-bold text-white sm:text-3xl">
+                  {user.first_name} {user.last_name}
+                </h1>
+                <p className="mt-0.5 text-sm text-primary-200">{user.email}</p>
+              </div>
+            </div>
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 self-start sm:flex-col sm:items-end">
+              <button
+                type="button"
+                onClick={handleOpenEdit}
+                className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                {t('profile.editProfile')}
+              </button>
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleOpenEdit}
-            className="flex items-center gap-2 self-start sm:self-auto"
-          >
-            <Pencil className="size-4 text-neutral-500" aria-hidden="true" />
-            <span>{t('profile.editProfile')}</span>
-          </Button>
         </div>
 
         {/* Success Banner */}
@@ -222,41 +240,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Profile Header Card */}
-        <section
-          aria-label={t('profile.title')}
-          className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-card transition-all sm:p-7"
-        >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4 sm:gap-5">
-              <div
-                className="flex size-18 shrink-0 items-center justify-center rounded-full bg-primary-700 text-xl font-semibold text-white shadow-xs ring-4 ring-primary-50 select-none sm:size-20 sm:text-2xl"
-                aria-hidden="true"
-              >
-                {initials(user.first_name, user.last_name)}
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-lg font-bold tracking-tight text-neutral-900 sm:text-xl">
-                  {user.first_name} {user.last_name}
-                </h2>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <RoleBadge role={user.role} />
-                  <span className="text-xs font-medium text-neutral-300" aria-hidden="true">
-                    ·
-                  </span>
-                  <span className="text-xs font-medium text-neutral-500">{roleLabel}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 self-start sm:self-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 shadow-2xs">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-                {t('common.active')}
-              </span>
-            </div>
-          </div>
-        </section>
 
         {/* Personal Information */}
         <section
@@ -382,7 +365,7 @@ export default function Profile() {
             >
               {SUPPORTED_UI_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
-                  {NATIVE_LANGUAGE_LABELS[code]} ({LANGUAGE_LABELS[code]})
+                  {UI_NATIVE_LABELS[code] ?? code} ({code === 'ml' ? 'Malayalam' : LANGUAGE_LABELS[code as LanguageCode] ?? code})
                 </option>
               ))}
             </Select>

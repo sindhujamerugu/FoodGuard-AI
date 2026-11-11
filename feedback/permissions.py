@@ -50,3 +50,15 @@ class FeedbackDetailPermission(BasePermission):
 
         # RESTAURANT_USER and any other role: explicitly denied
         return False
+
+
+class FeedbackModeratePermission(BasePermission):
+    """REVIEWER or ADMIN only — for the moderation endpoint."""
+    message = "Only reviewers and admins may moderate feedback."
+
+    def has_permission(self, request, view) -> bool:
+        return bool(
+            request.user and
+            request.user.is_authenticated and
+            request.user.role in _PRIVILEGED_ROLES
+        )
