@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { BarChart3, Bell, Building2, FileText, LayoutDashboard, MessageSquare, ShieldCheck, Star, User } from 'lucide-react'
+import { BarChart3, Bell, Building2, Clock3, FileText, LayoutDashboard, MessageSquare, ShieldCheck, Star, User } from 'lucide-react'
 import type { TranslationKey } from '@/i18n/en'
 import type { UserRole } from '@/types/user'
 
@@ -29,6 +29,8 @@ const REVIEWER_NAV: NavItem[] = [
   { labelKey: 'nav.dashboard', to: '/reviewer', icon: LayoutDashboard, end: true },
   { labelKey: 'nav.reports', to: '/reviewer/reports', icon: FileText },
   { labelKey: 'nav.complaints', to: '/reviewer/complaints', icon: MessageSquare },
+  { labelKey: 'nav.activity', to: '/reviewer/activity', icon: Clock3 },
+  { labelKey: 'nav.notifications', to: '/reviewer/notifications', icon: Bell, badge: 'notifications' },
   { labelKey: 'nav.restaurants', to: '/reviewer/restaurants', icon: Building2 },
   { labelKey: 'nav.profile', to: '/profile', icon: User },
 ]
@@ -41,6 +43,8 @@ const ADMIN_NAV: NavItem[] = [
   { labelKey: 'nav.dashboard', to: '/admin', icon: BarChart3, end: true },
   { labelKey: 'nav.reports', to: '/reviewer/reports', icon: FileText },
   { labelKey: 'nav.complaints', to: '/reviewer/complaints', icon: MessageSquare },
+  { labelKey: 'nav.activity', to: '/reviewer/activity', icon: Clock3 },
+  { labelKey: 'nav.notifications', to: '/reviewer/notifications', icon: Bell, badge: 'notifications' },
   { labelKey: 'nav.restaurants', to: '/reviewer/restaurants', icon: Building2 },
   { labelKey: 'nav.profile', to: '/profile', icon: User },
 ]

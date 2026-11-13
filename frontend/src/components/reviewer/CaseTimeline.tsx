@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, Circle, Clock, ShieldAlert, XCircle } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useLanguage } from '@/i18n/LanguageContext'
@@ -19,7 +19,9 @@ interface CaseTimelineProps {
   escalationLevel?: string | null
   resolvedAt?: string | null
   closedAt?: string | null
-  status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED'
+  rejectedAt?: string | null
+  rejectionReason?: string | null
+  status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED' | 'REJECTED'
   className?: string
 }
 
@@ -30,6 +32,8 @@ export function CaseTimeline({
   escalationLevel,
   resolvedAt,
   closedAt,
+  rejectedAt,
+  rejectionReason,
   status,
   className,
 }: CaseTimelineProps) {
@@ -38,6 +42,7 @@ export function CaseTimeline({
   const isUnderReview = status === 'UNDER_REVIEW'
   const isResolved = status === 'RESOLVED'
   const isClosed = status === 'CLOSED'
+  const isRejected = status === 'REJECTED'
 
   const events: CaseTimelineEvent[] = []
 
@@ -84,8 +89,17 @@ export function CaseTimeline({
     })
   }
 
-  // 4. Resolved
-  if (isResolved || isClosed || resolvedAt) {
+  // 4. Resolved / Rejected
+  if (isRejected) {
+    events.push({
+      key: 'rejected',
+      label: 'Complaint Rejected',
+      description: rejectionReason ? `Reason: ${rejectionReason}` : 'Complaint dismissed by reviewer with documented findings',
+      timestamp: rejectedAt ?? null,
+      status: 'completed',
+      tone: 'danger',
+    })
+  } else if (isResolved || isClosed || resolvedAt) {
     events.push({
       key: 'resolved',
       label: 'Case Resolved',
@@ -105,8 +119,8 @@ export function CaseTimeline({
     })
   }
 
-  // 5. Closed
-  if (isClosed || closedAt) {
+  // 5. Closed (only if not rejected)
+  if (!isRejected && (isClosed || closedAt)) {
     events.push({
       key: 'closed',
       label: 'Case Closed',
@@ -129,6 +143,10 @@ export function CaseTimeline({
                 {evt.key === 'escalated' ? (
                   <div className="flex size-5 items-center justify-center rounded-full bg-danger-100 text-danger-700">
                     <ShieldAlert className="size-3.5" aria-hidden="true" />
+                  </div>
+                ) : evt.key === 'rejected' ? (
+                  <div className="flex size-5 items-center justify-center rounded-full bg-danger-100 text-danger-700">
+                    <XCircle className="size-3.5" aria-hidden="true" />
                   </div>
                 ) : evt.status === 'completed' ? (
                   <CheckCircle2 className="size-5 text-primary-700" aria-hidden="true" />

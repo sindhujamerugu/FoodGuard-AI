@@ -66,6 +66,8 @@ const FAKE_REPORT: FoodReport = {
   image: 'https://example.com/evidence.jpg',
   status: 'SUBMITTED',
   priority: 'HIGH',
+  location_lat: null,
+  location_lng: null,
   created_at: '2026-02-10T14:30:00Z',
   updated_at: '2026-02-10T14:30:00Z',
 }

@@ -16,7 +16,7 @@ No AI logic. No notification logic. No translation logic.
 
 from django.utils import timezone
 
-from complaints.models import Complaint
+from complaints.models import Complaint, ReviewerActivity
 from escalation.models import Escalation
 from users.models import User
 
@@ -98,6 +98,23 @@ class EscalationService:
             status=Escalation.Status.PENDING,
         )
 
+        self._record_review_activity(
+            actor=requesting_user,
+            escalation=escalation,
+            complaint=complaint,
+            action_type=ReviewerActivity.ActionType.ESCALATION_CREATED,
+            summary=(
+                f"Escalation #{escalation.pk} for complaint #{complaint.pk} created "
+                f"by {requesting_user.full_name} ({escalation_level})"
+            ),
+            metadata={
+                "complaint_id": complaint.pk,
+                "escalation_level": escalation_level,
+                "status": Escalation.Status.PENDING,
+                "assigned_to_id": getattr(assigned_to_user, "pk", None),
+            },
+        )
+
         from notifications.models import Notification
         from notifications.services import NotificationService
         message = f"Escalation created for complaint \"{complaint.title}\"."
@@ -122,6 +139,8 @@ class EscalationService:
     # ------------------------------------------------------------------
 
     def update(self, escalation: Escalation, validated_data: dict) -> Escalation:
+        previous_status = escalation.status
+        previous_assignee = escalation.assigned_to
         new_status = validated_data.get("status")
         if new_status and new_status != escalation.status:
             self._check_status_transition(escalation.status, new_status)
@@ -141,6 +160,24 @@ class EscalationService:
             escalation.resolved_at = None
 
         escalation.save()
+        self._record_review_activity(
+            actor=escalation.created_by,
+            escalation=escalation,
+            complaint=escalation.complaint,
+            action_type=ReviewerActivity.ActionType.ESCALATION_UPDATED,
+            summary=(
+                f"Escalation #{escalation.pk} updated for complaint #{escalation.complaint.pk} "
+                f"(status {previous_status} → {escalation.status})"
+            ) if new_status and new_status != previous_status else (
+                f"Escalation #{escalation.pk} reassigned for complaint #{escalation.complaint.pk}"
+            ),
+            metadata={
+                "previous_status": previous_status,
+                "new_status": escalation.status,
+                "previous_assignee_id": getattr(previous_assignee, "pk", None),
+                "new_assignee_id": getattr(escalation.assigned_to, "pk", None),
+            },
+        )
 
         from notifications.models import Notification
         from notifications.services import NotificationService
@@ -157,6 +194,33 @@ class EscalationService:
                 notified_ids.add(recipient.pk)
 
         return escalation
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _record_review_activity(
+        self,
+        *,
+        actor,
+        escalation: Escalation,
+        complaint: Complaint,
+        action_type,
+        summary: str,
+        metadata: dict,
+    ) -> None:
+        if actor is None or not getattr(actor, "is_authenticated", False):
+            return
+        if actor.role not in (User.Role.REVIEWER, User.Role.ADMIN):
+            return
+        ReviewerActivity.objects.create(
+            actor=actor,
+            escalation=escalation,
+            complaint=complaint,
+            action_type=action_type,
+            summary=summary,
+            metadata=metadata,
+        )
 
     # ------------------------------------------------------------------
     # Private guards

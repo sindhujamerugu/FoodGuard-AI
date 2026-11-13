@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from complaints.models import Complaint
+from complaints.models import Complaint, ComplaintInvestigation, ReviewerActivity
 from food_reports.models import FoodReport
 from restaurants.models import Restaurant
 
@@ -19,6 +19,13 @@ class CustomerMinimalSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class StaffMinimalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "email", "first_name", "last_name", "role"]
+        read_only_fields = fields
+
+
 class RestaurantMinimalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
@@ -31,6 +38,97 @@ class FoodReportMinimalSerializer(serializers.ModelSerializer):
         model = FoodReport
         fields = ["id", "title", "status"]
         read_only_fields = fields
+
+
+class ReviewerActivityReadSerializer(serializers.ModelSerializer):
+    actor = StaffMinimalSerializer(read_only=True)
+    complaint = serializers.PrimaryKeyRelatedField(read_only=True)
+    escalation = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = ReviewerActivity
+        fields = [
+            "id",
+            "actor",
+            "complaint",
+            "escalation",
+            "action_type",
+            "summary",
+            "metadata",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class ComplaintInvestigationSerializer(serializers.ModelSerializer):
+    investigator = StaffMinimalSerializer(read_only=True)
+    assigned_reviewer = StaffMinimalSerializer(read_only=True)
+
+    class Meta:
+        model = ComplaintInvestigation
+        fields = [
+            "id",
+            "complaint",
+            "investigator",
+            "assigned_reviewer",
+            "status",
+            "summary",
+            "findings",
+            "observations",
+            "evidence_review_notes",
+            "actions_taken",
+            "recommendation",
+            "remarks",
+            "started_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class ComplaintInvestigationUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ComplaintInvestigation
+        fields = [
+            "summary",
+            "findings",
+            "observations",
+            "evidence_review_notes",
+            "actions_taken",
+            "recommendation",
+            "remarks",
+            "status",
+        ]
+
+    def validate_summary(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_findings(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_observations(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_evidence_review_notes(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_actions_taken(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_remarks(self, value: str) -> str:
+        return value.strip() if value else ""
+
+    def validate_recommendation(self, value: str) -> str:
+        if value and value not in dict(ComplaintInvestigation.Recommendation.choices):
+            raise serializers.ValidationError("Invalid recommendation.")
+        return value
+
+    def validate_status(self, value: str) -> str:
+        valid = [item[0] for item in ComplaintInvestigation.Status.choices]
+        if value and value not in valid:
+            raise serializers.ValidationError("Invalid investigation status.")
+        return value
 
 
 # ---------------------------------------------------------------------------
@@ -46,6 +144,7 @@ class ComplaintReadSerializer(serializers.ModelSerializer):
     customer = CustomerMinimalSerializer(read_only=True)
     restaurant = RestaurantMinimalSerializer(read_only=True)
     food_report = FoodReportMinimalSerializer(read_only=True)
+    rejected_by = StaffMinimalSerializer(read_only=True)
 
     class Meta:
         model = Complaint
@@ -61,6 +160,9 @@ class ComplaintReadSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "resolution_notes",
+            "rejection_reason",
+            "rejected_by",
+            "rejected_at",
             "submitted_at",
             "updated_at",
             "resolved_at",
@@ -131,9 +233,14 @@ class ComplaintUpdateSerializer(serializers.ModelSerializer):
     are never accepted.
     """
 
+    rejection_reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+    )
+
     class Meta:
         model = Complaint
-        fields = ["status", "priority", "resolution_notes"]
+        fields = ["status", "priority", "resolution_notes", "rejection_reason"]
 
     def validate_status(self, value: str) -> str:
         valid = [s[0] for s in Complaint.Status.choices]
@@ -151,6 +258,20 @@ class ComplaintUpdateSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs: dict) -> dict:
+        status_val = attrs.get("status")
+        if status_val == Complaint.Status.REJECTED:
+            reason = attrs.get("rejection_reason")
+            if not reason or not reason.strip():
+                raise serializers.ValidationError(
+                    {"rejection_reason": "A non-empty rejection reason is required when rejecting a complaint."}
+                )
+        return attrs
+
     def update(self, instance: Complaint, validated_data: dict) -> Complaint:
         from complaints.services import ComplaintService
-        return ComplaintService().update(instance, validated_data)
+        request = self.context.get("request")
+        requesting_user = request.user if request else None
+        return ComplaintService().update(
+            instance, validated_data, requesting_user=requesting_user
+        )

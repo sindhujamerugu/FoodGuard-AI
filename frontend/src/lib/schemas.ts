@@ -12,7 +12,7 @@ export const registerSchema = z.object({
   email: z.string().min(1, 'Email is required.').email('Enter a valid email address.'),
   password: z.string().min(8, 'Password must be at least 8 characters.'),
   phone: z.string().optional(),
-  preferred_language: z.enum(['en', 'te', 'hi', 'ta', 'kn', 'mr']),
+  preferred_language: z.enum(['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml']),
 })
 export type RegisterFormValues = z.infer<typeof registerSchema>
 
@@ -59,6 +59,6 @@ export const profileSchema = z.object({
     .regex(phoneRegex, 'Enter a valid phone number (7–20 digits).')
     .optional()
     .or(z.literal('')),
-  preferred_language: z.enum(['en', 'te', 'hi', 'ta', 'kn', 'mr']),
+  preferred_language: z.enum(['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml']),
 })
 export type ProfileFormValues = z.infer<typeof profileSchema>

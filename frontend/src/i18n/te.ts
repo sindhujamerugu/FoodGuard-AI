@@ -85,6 +85,7 @@ export const te: Partial<Record<TranslationKey, string>> = {
   'status.underReview': 'సమీక్షలో ఉంది',
   'status.resolved': 'పరిష్కరించబడింది',
   'status.closed': 'మూసివేయబడింది',
+  'status.rejected': 'తిరస్కరించబడింది',
 
   // Priorities
   'priority.low': 'తక్కువ',
@@ -341,6 +342,18 @@ export const te: Partial<Record<TranslationKey, string>> = {
   'notifications.emptyDesc': 'మీ నివేదికలు మరియు ఫిర్యాదులు నవీకరించబడినప్పుడు మీకు తెలియజేయబడుతుంది.',
   'notifications.filterAll': 'అన్నీ',
   'notifications.filterUnread': 'చదవనివి',
+  'notifications.filterRead': 'చదివినవి',
+  'notifications.filterComplaints': 'ఫిర్యాదులు',
+  'notifications.filterEscalations': 'ఎస్కలేషన్లు',
+  'notifications.filterOther': 'ఇతర',
+  'notifications.total': 'మొత్తం నోటిఫికేషన్లు',
+  'notifications.read': 'చదివినవి',
+  'notifications.actionRequired': 'చర్య అవసరం',
+  'notifications.noNotifications': 'నోటిఫికేషన్లు లేవు',
+  'notifications.retry': 'మళ్ళీ ప్రయత్నించండి',
+  'notifications.reviewerSubtitle': 'కేటాయించిన ఫిర్యాదులు, ముఖ్యమైన ఎస్కలేషన్లు మరియు నివేదిక తాజా సమాచారాన్ని సమీక్షించండి.',
+  'notifications.viewComplaint': 'ఫిర్యాదును చూడండి',
+  'notifications.viewReport': 'నివేదికను చూడండి',
   'notifications.loadError': 'మీ నోటిఫికేషన్లను లోడ్ చేయడం సాధ్యపడలేదు.',
   'notifications.unread': '{count} చదవనివి',
   'notifications.markRead': 'చదివినట్టు గుర్తించండి',
@@ -351,6 +364,11 @@ export const te: Partial<Record<TranslationKey, string>> = {
   'notifications.event.COMPLAINT_STATUS_CHANGED': 'ఫిర్యాదు స్థితి నవీకరించబడింది',
   'notifications.event.ESCALATION_CREATED': 'ఫిర్యాదు ఎస్కలేట్ చేయబడింది',
   'notifications.event.ESCALATION_UPDATED': 'ఎస్కలేషన్ నవీకరించబడింది',
+  'notifications.event.OFFICER_ASSIGNED': 'అధికారి కేటాయించబడ్డారు',
+  'notifications.event.OFFICER_ESCALATED': 'తదుపరి స్థాయికి ఎస్కలేట్ చేయబడింది',
+  'notifications.event.FEEDBACK_SUBMITTED': 'ఫీడ్‌బ్యాక్ సమర్పించబడింది',
+  'notifications.event.FEEDBACK_APPROVED': 'ఫీడ్‌బ్యాక్ ఆమోదించబడింది',
+  'notifications.event.FEEDBACK_REJECTED': 'ఫీడ్‌బ్యాక్ సమీక్షించబడింది',
 
   // ── Phase 4: Multi-step Complaint Wizard ───────────────────────────
   'wizard.title': 'ఆహార సమస్యను నివేదించండి',

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTranslation } from '@/i18n/LanguageContext'
 import { useAuth } from '@/context/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { BRAND, getNavItems } from './navConfig'
 import type { UserRole } from '@/types/user'
 
@@ -18,6 +19,8 @@ export function Sidebar({ role, onCollapsedChange }: SidebarProps) {
   const items = getNavItems(role)
   const t = useTranslation()
   const { logout } = useAuth()
+  const { data: notifications = [] } = useNotifications()
+  const unreadCount = notifications.filter((n) => !n.is_read).length
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -103,21 +106,42 @@ export function Sidebar({ role, onCollapsedChange }: SidebarProps) {
           >
             {({ isActive }) => (
               <>
-                <item.icon
-                  className={cn(
-                    'shrink-0 transition-transform duration-200',
-                    collapsed ? 'size-5' : 'size-4.5',
-                    !isActive && 'group-hover:scale-110',
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <item.icon
+                    className={cn(
+                      'shrink-0 transition-transform duration-200',
+                      collapsed ? 'size-5' : 'size-4.5',
+                      !isActive && 'group-hover:scale-110',
+                    )}
+                    aria-hidden="true"
+                  />
+                  {collapsed && item.badge === 'notifications' && unreadCount > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 size-2 rounded-full bg-primary-600 ring-2 ring-white"
+                      aria-label={`${unreadCount} unread`}
+                    />
                   )}
-                  aria-hidden="true"
-                />
+                </div>
                 {!collapsed && (
-                  <span className="truncate text-sm font-medium">{t(item.labelKey)}</span>
+                  <span className="truncate text-sm font-medium flex-1">{t(item.labelKey)}</span>
+                )}
+                {!collapsed && item.badge === 'notifications' && unreadCount > 0 && (
+                  <span
+                    className={cn(
+                      'ml-auto inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold leading-none',
+                      isActive ? 'bg-white/25 text-white' : 'bg-primary-100 text-primary-700',
+                    )}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
                 )}
                 {/* Tooltip on collapsed */}
                 {collapsed && (
                   <span className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
                     {t(item.labelKey)}
+                    {item.badge === 'notifications' && unreadCount > 0
+                      ? ` (${unreadCount > 99 ? '99+' : unreadCount})`
+                      : ''}
                   </span>
                 )}
               </>

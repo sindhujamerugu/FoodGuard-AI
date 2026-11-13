@@ -6,7 +6,6 @@ import {
   CheckCheck,
   FileText,
   MessageSquare,
-  ShieldAlert,
   Sparkles,
   TrendingUp,
 } from 'lucide-react'

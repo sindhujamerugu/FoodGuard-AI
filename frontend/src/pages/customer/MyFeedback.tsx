@@ -10,7 +10,6 @@
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
-  Building2,
   Calendar,
   Hash,
   MessageSquare,
@@ -26,7 +25,7 @@ import { useFeedback } from '@/hooks/useFeedback'
 import { formatDate } from '@/lib/format'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { cn } from '@/lib/cn'
-import type { ModerationStatus } from '@/types/feedback'
+import type { Feedback, ModerationStatus } from '@/types/feedback'
 
 // ── Star display ──────────────────────────────────────────────────────────────
 
@@ -58,7 +57,7 @@ const MODERATION_BADGE: Record<ModerationStatus, { label: string; cls: string }>
 
 // ── Feedback card ─────────────────────────────────────────────────────────────
 
-function FeedbackCard({ item }: { item: ReturnType<typeof useFeedback>['data'] extends (infer T)[] ? T : never }) {
+function FeedbackCard({ item }: { item: Feedback }) {
   const { language } = useLanguage()
   const badge = MODERATION_BADGE[item.moderation_status]
 

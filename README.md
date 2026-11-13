@@ -274,6 +274,11 @@ Interactive docs available at:
 | GET | `/api/v1/complaints/<id>/` | Owner/REVIEWER/ADMIN | Get complaint detail |
 | PATCH | `/api/v1/complaints/<id>/` | REVIEWER/ADMIN | Update status/priority/resolution |
 
+### Reviewer Activity — `/api/v1/complaints/activity/`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/complaints/activity/` | REVIEWER/ADMIN | Read immutable reviewer audit trail with search and pagination |
+
 ### Escalations — `/api/v1/escalations/`
 | Method | Path | Auth | Description |
 |---|---|---|---|

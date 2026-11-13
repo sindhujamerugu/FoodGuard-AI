@@ -46,6 +46,8 @@ function fakeReport(id: number, title: string): FoodReport {
     image: null,
     status: 'DRAFT',
     priority: 'LOW',
+    location_lat: null,
+    location_lng: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
   }

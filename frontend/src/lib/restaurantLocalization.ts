@@ -4,7 +4,7 @@ import { SUPPORTED_UI_LANGUAGES } from '@/i18n/LanguageContext'
 /**
  * Canonical dictionary of Indian cities across all 6 supported UI languages.
  */
-export const CITY_TRANSLATIONS: Record<string, Record<UiLanguage, string>> = {
+export const CITY_TRANSLATIONS: Record<string, Partial<Record<UiLanguage, string>>> = {
   hyderabad: {
     en: 'Hyderabad',
     te: 'హైదరాబాద్',
@@ -242,7 +242,7 @@ export const CITY_TRANSLATIONS: Record<string, Record<UiLanguage, string>> = {
 /**
  * Canonical dictionary of Indian states across all 6 supported UI languages.
  */
-export const STATE_TRANSLATIONS: Record<string, Record<UiLanguage, string>> = {
+export const STATE_TRANSLATIONS: Record<string, Partial<Record<UiLanguage, string>>> = {
   telangana: {
     en: 'Telangana',
     te: 'తెలంగాణ',
@@ -384,7 +384,7 @@ export const STATE_TRANSLATIONS: Record<string, Record<UiLanguage, string>> = {
 /**
  * Reusable localization mappings for restaurant names across all 6 supported UI languages.
  */
-export const RESTAURANT_NAME_TRANSLATIONS: Record<string, Record<UiLanguage, string>> = {
+export const RESTAURANT_NAME_TRANSLATIONS: Record<string, Partial<Record<UiLanguage, string>>> = {
   'spice garden': {
     en: 'Spice Garden',
     te: 'స్పైస్ గార్డెన్',
@@ -541,7 +541,8 @@ export function getLocalizedRestaurantName(canonicalName: string, language: UiLa
   for (const baseKey of knownKeys) {
     if (lower.startsWith(baseKey)) {
       const suffix = trimmed.slice(baseKey.length).trim()
-      const baseTranslated = RESTAURANT_NAME_TRANSLATIONS[baseKey][language]
+      const baseTranslated = RESTAURANT_NAME_TRANSLATIONS[baseKey]?.[language]
+      if (!baseTranslated) continue
 
       if (!suffix) {
         return baseTranslated

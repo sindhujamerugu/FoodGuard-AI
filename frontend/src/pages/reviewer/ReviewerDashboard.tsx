@@ -14,6 +14,7 @@ import {
   Search,
   ShieldAlert,
   UserCheck,
+  XCircle,
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/badges/StatusBadge'
@@ -27,6 +28,7 @@ import { Input } from '@/components/ui/Input'
 import { useReports } from '@/hooks/useReports'
 import { useComplaints } from '@/hooks/useComplaints'
 import { useRestaurants } from '@/hooks/useRestaurants'
+import { useReviewerActivity } from '@/hooks/useReviewerActivity'
 import { formatDate } from '@/lib/format'
 import type { FoodReport } from '@/types/report'
 
@@ -55,7 +57,15 @@ interface RecentActivityEvent {
   description: string
   timestamp: string
   link: string
-  type: 'COMPLAINT_RESOLVED' | 'COMPLAINT_SUBMITTED' | 'REPORT_SUBMITTED'
+  type:
+    | 'COMPLAINT_RESOLVED'
+    | 'COMPLAINT_SUBMITTED'
+    | 'REPORT_SUBMITTED'
+    | 'COMPLAINT_REJECTED'
+    | 'COMPLAINT_STATUS_CHANGED'
+    | 'COMPLAINT_PRIORITY_CHANGED'
+    | 'ESCALATION_CREATED'
+    | 'ESCALATION_UPDATED'
 }
 
 const PRIORITY_ORDER: Record<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW', number> = {
@@ -70,6 +80,7 @@ export default function ReviewerDashboard() {
   const reportsQuery = useReports()
   const complaintsQuery = useComplaints()
   const restaurantsQuery = useRestaurants()
+  const reviewerActivityQuery = useReviewerActivity({ page_size: 5 })
 
   const [activeTab, setActiveTab] = useState<QueueTab>('all')
   const [searchFilter, setSearchFilter] = useState('')
@@ -200,55 +211,18 @@ export default function ReviewerDashboard() {
     )
   }, [queueItems, activeTab, searchFilter])
 
-  // 5. Real Recent Activity (strictly using real database records and timestamps)
+  // 5. Recent activity comes from the backend audit trail, not derived UI state.
   const recentActivity = useMemo<RecentActivityEvent[]>(() => {
-    const events: RecentActivityEvent[] = []
-
-    // A. Resolved complaints with real resolved_at
-    for (const c of complaints) {
-      if (c.resolved_at) {
-        events.push({
-          id: `resolved-${c.id}`,
-          title: `Complaint #${c.id} Resolved`,
-          description: `Resolved for ${c.restaurant.name} · Notes: ${c.resolution_notes ? c.resolution_notes.slice(0, 70) + '...' : 'Investigation closed'}`,
-          timestamp: c.resolved_at,
-          link: `/reviewer/complaints/${c.id}`,
-          type: 'COMPLAINT_RESOLVED',
-        })
-      }
-    }
-
-    // B. Submitted complaints
-    for (const c of complaints) {
-      events.push({
-        id: `submitted-cmp-${c.id}`,
-        title: `New Complaint Filed: #${c.id}`,
-        description: `Filed by ${c.customer.first_name} ${c.customer.last_name} regarding ${c.restaurant.name}`,
-        timestamp: c.submitted_at,
-        link: `/reviewer/complaints/${c.id}`,
-        type: 'COMPLAINT_SUBMITTED',
-      })
-    }
-
-    // C. Submitted reports
-    for (const r of reports) {
-      if (r.status !== 'DRAFT') {
-        events.push({
-          id: `submitted-rep-${r.id}`,
-          title: `Report Submitted: #${r.id}`,
-          description: `"${r.title}" at ${r.restaurant.name}`,
-          timestamp: r.created_at,
-          link: `/reviewer/reports/${r.id}`,
-          type: 'REPORT_SUBMITTED',
-        })
-      }
-    }
-
-    // Sort descending by real timestamp and take top 5
-    return events
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5)
-  }, [complaints, reports])
+    const entries = reviewerActivityQuery.data?.results ?? []
+    return entries.slice(0, 5).map((entry) => ({
+      id: `activity-${entry.id}`,
+      title: entry.action_type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()),
+      description: entry.summary,
+      timestamp: entry.created_at,
+      link: entry.complaint ? `/reviewer/complaints/${entry.complaint}` : entry.escalation ? `/reviewer/activity` : '/reviewer/activity',
+      type: entry.action_type as RecentActivityEvent['type'],
+    }))
+  }, [reviewerActivityQuery.data])
 
   const isLoading = reportsQuery.isLoading || complaintsQuery.isLoading || restaurantsQuery.isLoading
   const isError = reportsQuery.isError || complaintsQuery.isError || restaurantsQuery.isError
@@ -705,6 +679,8 @@ export default function ReviewerDashboard() {
                       <div className="flex items-center gap-1.5 min-w-0">
                         {evt.type === 'COMPLAINT_RESOLVED' ? (
                           <CheckCircle className="size-3.5 text-success-600 shrink-0" />
+                        ) : evt.type === 'COMPLAINT_REJECTED' ? (
+                          <XCircle className="size-3.5 text-danger-600 shrink-0" />
                         ) : evt.type === 'COMPLAINT_SUBMITTED' ? (
                           <MessageSquare className="size-3.5 text-rose-600 shrink-0" />
                         ) : (

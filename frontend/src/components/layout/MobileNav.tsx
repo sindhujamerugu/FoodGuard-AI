@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTranslation } from '@/i18n/LanguageContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { BRAND, getNavItems } from './navConfig'
 import type { UserRole } from '@/types/user'
 
@@ -14,6 +15,8 @@ interface MobileNavProps {
 export function MobileNav({ role, open, onClose }: MobileNavProps) {
   const items = getNavItems(role)
   const t = useTranslation()
+  const { data: notifications = [] } = useNotifications()
+  const unreadCount = notifications.filter((n) => !n.is_read).length
 
   if (!open) return null
 
@@ -50,7 +53,12 @@ export function MobileNav({ role, open, onClose }: MobileNavProps) {
               }
             >
               <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-              {t(item.labelKey)}
+              <span className="flex-1 truncate">{t(item.labelKey)}</span>
+              {item.badge === 'notifications' && unreadCount > 0 && (
+                <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-700">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

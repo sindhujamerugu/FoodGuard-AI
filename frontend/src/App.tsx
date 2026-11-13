@@ -33,7 +33,10 @@ import ReviewerReportsList from '@/pages/reviewer/ReviewerReportsList'
 import ReviewerReportDetail from '@/pages/reviewer/ReviewerReportDetail'
 import ReviewerComplaintsList from '@/pages/reviewer/ReviewerComplaintsList'
 import ReviewerComplaintDetail from '@/pages/reviewer/ReviewerComplaintDetail'
+import ReviewerComplaintInvestigation from '@/pages/reviewer/ReviewerComplaintInvestigation'
+import ReviewerActivity from '@/pages/reviewer/ReviewerActivity'
 import ReviewerRestaurants from '@/pages/reviewer/ReviewerRestaurants'
+import ReviewerNotifications from '@/pages/reviewer/ReviewerNotifications'
 
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 
@@ -301,11 +304,41 @@ export default function App() {
         }
       />
       <Route
+        path="/reviewer/complaints/:id/investigation"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['REVIEWER', 'ADMIN']}>
+              <ReviewerComplaintInvestigation />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/activity"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['REVIEWER', 'ADMIN']}>
+              <ReviewerActivity />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reviewer/restaurants"
         element={
           <ProtectedRoute>
             <RoleGuard allow={['REVIEWER', 'ADMIN']}>
               <ReviewerRestaurants />
+            </RoleGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/notifications"
+        element={
+          <ProtectedRoute>
+            <RoleGuard allow={['REVIEWER', 'ADMIN']}>
+              <ReviewerNotifications />
             </RoleGuard>
           </ProtectedRoute>
         }

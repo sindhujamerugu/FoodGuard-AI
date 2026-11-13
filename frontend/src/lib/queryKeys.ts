@@ -7,6 +7,10 @@ export const queryKeys = {
     all: ['complaints'] as const,
     detail: (id: number) => ['complaints', id] as const,
   },
+  complaintInvestigations: {
+    detail: (id: number) => ['complaint-investigations', id] as const,
+    history: (id: number) => ['complaint-investigations', id, 'history'] as const,
+  },
   restaurants: {
     all: ['restaurants'] as const,
     detail: (id: number) => ['restaurants', id] as const,
@@ -20,6 +24,9 @@ export const queryKeys = {
   escalations: {
     all: ['escalations'] as const,
     detail: (id: number) => ['escalations', id] as const,
+  },
+  reviewerActivity: {
+    all: ['reviewer-activity'] as const,
   },
   notifications: {
     all: ['notifications'] as const,

@@ -6,6 +6,11 @@ export type NotificationEventType =
   | 'COMPLAINT_STATUS_CHANGED'
   | 'ESCALATION_CREATED'
   | 'ESCALATION_UPDATED'
+  | 'OFFICER_ASSIGNED'
+  | 'OFFICER_ESCALATED'
+  | 'FEEDBACK_SUBMITTED'
+  | 'FEEDBACK_APPROVED'
+  | 'FEEDBACK_REJECTED'
 
 export interface Notification {
   id: number
@@ -22,3 +27,13 @@ export interface Notification {
   is_read: boolean
   created_at: string
 }
+
+export interface NotificationFilterParams {
+  is_read?: boolean
+  category?: 'complaints' | 'escalations' | 'reports' | 'other' | string
+  event_type?: string
+  ordering?: string
+  page?: number
+  page_size?: number
+}
+

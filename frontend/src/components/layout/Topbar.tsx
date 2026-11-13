@@ -57,10 +57,16 @@ export function Topbar({ title, onMenuClick }: { title: string; onMenuClick: () 
       <div className="flex items-center gap-1">
         <LanguageSelector />
 
-        {/* Notification bell — only for authenticated users */}
+        {/* Notification bell — routes according to user role */}
         <button
           type="button"
-          onClick={() => navigate('/notifications')}
+          onClick={() => {
+            if (user.role === 'REVIEWER' || user.role === 'ADMIN') {
+              navigate('/reviewer/notifications')
+            } else {
+              navigate('/notifications')
+            }
+          }}
           aria-label={
             unreadCount > 0
               ? t('topbar.unreadCount', { count: unreadCount })

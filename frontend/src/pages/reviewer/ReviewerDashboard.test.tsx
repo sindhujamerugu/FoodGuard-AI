@@ -59,6 +59,8 @@ function fakeReport(id: number, title: string, status: any = 'SUBMITTED', priori
     image: 'https://example.com/food.jpg',
     status,
     priority,
+    location_lat: null,
+    location_lng: null,
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-01T10:00:00Z',
   }

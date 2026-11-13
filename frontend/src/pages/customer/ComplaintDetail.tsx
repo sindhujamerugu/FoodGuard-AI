@@ -34,6 +34,7 @@ import {
   Tag,
   TrendingUp,
   UtensilsCrossed,
+  XCircle,
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/badges/StatusBadge'
@@ -49,12 +50,10 @@ import { useComplaint } from '@/hooks/useComplaints'
 import { useReport } from '@/hooks/useReports'
 import { useAIAnalysis } from '@/hooks/useAIAnalysis'
 import { useNotifications } from '@/hooks/useNotifications'
-import { useOfficerAssignment } from '@/hooks/useOfficerAssignment'
 import { useFeedback } from '@/hooks/useFeedback'
 import { useTranslation, type TranslationKey } from '@/i18n'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import type { Complaint } from '@/types/complaint'
 
 // ── Category labels ───────────────────────────────────────────────────────────
 
@@ -111,7 +110,6 @@ function SectionCard({
 // ── AI Assessment section ─────────────────────────────────────────────────────
 
 function AISection({ reportId }: { reportId: number }) {
-  const { t } = useTranslation()
   const { data: analysis, isLoading, isError, error, refetch } = useAIAnalysis(reportId)
   const is404 = axios.isAxiosError(error) && error.response?.status === 404
 
@@ -176,8 +174,7 @@ function locationString(report: { location_lat?: string | null; location_lng?: s
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ComplaintDetail() {
-  const { t } = useTranslation()
-  const { language } = t
+  const { t, language } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const complaintId = Number(id)
 
@@ -269,6 +266,9 @@ export default function ComplaintDetail() {
                   {complaint.resolved_at && (
                     <InfoRow icon={CheckCircle2}  label="Resolved on"    value={formatDateTime(complaint.resolved_at, language)} />
                   )}
+                  {complaint.rejected_at && (
+                    <InfoRow icon={XCircle}       label="Rejected on"    value={formatDateTime(complaint.rejected_at, language)} />
+                  )}
                   {locationStr && (
                     <InfoRow icon={MapPin}        label="Location"       value={locationStr} mono />
                   )}
@@ -346,6 +346,26 @@ export default function ComplaintDetail() {
                   </Reveal>
                 )}
 
+                {/* Rejection notice — shown when complaint is rejected */}
+                {complaint.status === 'REJECTED' && (
+                  <Reveal delay={100}>
+                    <div className="rounded-2xl border border-danger-200 bg-danger-50 p-5">
+                      <div className="mb-3 flex items-center gap-2">
+                        <XCircle className="size-4.5 text-danger-600" aria-hidden="true" />
+                        <h3 className="text-sm font-semibold text-danger-800">Complaint Rejected</h3>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-danger-700">
+                        {complaint.rejection_reason || 'No specific rationale provided.'}
+                      </p>
+                      {complaint.rejected_at && (
+                        <p className="mt-3 text-xs text-danger-600 font-mono">
+                          Decision recorded on {formatDateTime(complaint.rejected_at, language)}
+                        </p>
+                      )}
+                    </div>
+                  </Reveal>
+                )}
+
                 {/* Officer workflow notice */}
                 {complaint.status !== 'SUBMITTED' && (
                   <Reveal delay={120}>
@@ -392,6 +412,12 @@ export default function ComplaintDetail() {
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Resolved on</p>
                           <p className="mt-0.5 text-sm text-neutral-800">{formatDateTime(complaint.resolved_at, language)}</p>
+                        </div>
+                      )}
+                      {complaint.rejected_at && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Rejected on</p>
+                          <p className="mt-0.5 text-sm text-neutral-800">{formatDateTime(complaint.rejected_at, language)}</p>
                         </div>
                       )}
                     </div>

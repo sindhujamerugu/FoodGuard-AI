@@ -15,7 +15,6 @@
  *  - Never fabricate escalation data
  *  - Never call GET /api/v1/escalations/ (REVIEWER-only endpoint)
  */
-import { type ReactElement } from 'react'
 import {
   CheckCircle2,
   Clock,
@@ -42,6 +41,7 @@ const STATUS_LABEL_KEYS: Record<string, TranslationKey> = {
   UNDER_REVIEW: 'status.underReview',
   RESOLVED:     'status.resolved',
   CLOSED:       'status.closed',
+  REJECTED:     'status.rejected',
 }
 
 const EVENT_META: Partial<Record<
@@ -54,7 +54,7 @@ const EVENT_META: Partial<Record<
   ESCALATION_UPDATED:       { label: 'complaints.timeline.escalationUpdate', icon: TrendingUp,  variant: 'warning' },
 }
 
-type TimelineVariant = 'done' | 'active' | 'pending' | 'info' | 'warning' | 'resolved' | 'closed'
+type TimelineVariant = 'done' | 'active' | 'pending' | 'info' | 'warning' | 'resolved' | 'closed' | 'rejected'
 
 interface TimelineStep {
   key: string
@@ -71,6 +71,7 @@ function iconFor(variant: TimelineVariant): React.ElementType {
     case 'active':   return Loader2
     case 'resolved': return CheckCircle2
     case 'closed':   return XCircle
+    case 'rejected': return XCircle
     case 'info':     return Sparkles
     case 'warning':  return TrendingUp
     default:         return Clock
@@ -85,6 +86,7 @@ const DOT_STYLES: Record<TimelineVariant, string> = {
   warning:  'border-warning-500 bg-warning-500 text-white',
   resolved: 'border-success-500 bg-success-500 text-white',
   closed:   'border-neutral-400 bg-neutral-400 text-white',
+  rejected: 'border-danger-500 bg-danger-500 text-white',
 }
 
 const LINE_STYLES: Record<TimelineVariant, string> = {
@@ -95,6 +97,7 @@ const LINE_STYLES: Record<TimelineVariant, string> = {
   warning:  'bg-warning-200',
   resolved: 'bg-success-200',
   closed:   'bg-neutral-200',
+  rejected: 'bg-danger-200',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -106,9 +109,10 @@ export function ComplaintTimeline({ complaint }: { complaint: Complaint }) {
 
   // ── 1. Base status steps ───────────────────────────────────────────
 
+  const isRejected = complaint.status === 'REJECTED'
   const isResolved = complaint.status === 'RESOLVED' || complaint.status === 'CLOSED'
   const isClosed   = complaint.status === 'CLOSED'
-  const isReview   = complaint.status === 'UNDER_REVIEW' || isResolved
+  const isReview   = complaint.status === 'UNDER_REVIEW' || isResolved || isRejected
   const isActive   = complaint.status === 'SUBMITTED'    // still waiting for first action
 
   const baseSteps: TimelineStep[] = [
@@ -126,24 +130,36 @@ export function ComplaintTimeline({ complaint }: { complaint: Complaint }) {
       variant: isReview ? 'done' : isActive ? 'active' : 'pending',
       icon:    UserCheck,
     },
-    {
+  ]
+
+  if (isRejected) {
+    baseSteps.push({
+      key:      'REJECTED',
+      label:    t('status.rejected'),
+      sublabel: complaint.rejection_reason || undefined,
+      at:       complaint.rejected_at || complaint.updated_at,
+      variant:  'rejected',
+      icon:     XCircle,
+    })
+  } else {
+    baseSteps.push({
       key:     'RESOLVED',
       label:   t('status.resolved'),
       at:      isResolved ? complaint.resolved_at : null,
       variant: isResolved ? 'resolved' : 'pending',
       icon:    CheckCircle2,
-    },
-  ]
-
-  // Add CLOSED only if the complaint actually reached that state
-  if (isClosed) {
-    baseSteps.push({
-      key:     'CLOSED',
-      label:   t('status.closed'),
-      at:      complaint.resolved_at,
-      variant: 'closed',
-      icon:    XCircle,
     })
+
+    // Add CLOSED only if the complaint actually reached that state
+    if (isClosed) {
+      baseSteps.push({
+        key:     'CLOSED',
+        label:   t('status.closed'),
+        at:      complaint.resolved_at,
+        variant: 'closed',
+        icon:    XCircle,
+      })
+    }
   }
 
   // ── 2. Notification-derived extra steps ────────────────────────────

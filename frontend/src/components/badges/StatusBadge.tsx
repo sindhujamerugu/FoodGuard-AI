@@ -12,6 +12,7 @@ const styles: Record<Status, string> = {
   UNDER_REVIEW: 'bg-warning-100 text-warning-700',
   RESOLVED: 'bg-success-100 text-success-700',
   CLOSED: 'bg-neutral-200 text-neutral-500',
+  REJECTED: 'bg-danger-100 text-danger-700 border border-danger-200',
 }
 
 const statusKeys: Record<Status, TranslationKey> = {
@@ -20,6 +21,7 @@ const statusKeys: Record<Status, TranslationKey> = {
   UNDER_REVIEW: 'status.underReview',
   RESOLVED: 'status.resolved',
   CLOSED: 'status.closed',
+  REJECTED: 'status.rejected',
 }
 
 export function StatusBadge({ status, className }: { status: Status; className?: string }) {

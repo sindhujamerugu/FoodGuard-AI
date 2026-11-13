@@ -1,9 +1,8 @@
-import { Building2, Calendar, ImageOff, MapPin, Navigation } from 'lucide-react'
+import { Building2, Calendar, ImageOff, Navigation } from 'lucide-react'
 import { StatusBadge } from '@/components/badges/StatusBadge'
 import { PriorityBadge } from '@/components/badges/PriorityBadge'
 import { formatDateTime } from '@/lib/format'
 import { useLanguage } from '@/i18n/LanguageContext'
-import { cn } from '@/lib/cn'
 import type { FoodReport } from '@/types/report'
 
 interface ReportOverviewProps {

@@ -246,3 +246,173 @@ class TestNotificationHookPoints(APITestCase):
                 recipient=assignee, event_type=Notification.EventType.ESCALATION_CREATED,
             ).exists()
         )
+
+
+class TestReviewerNotificationsAndEndpoints(APITestCase):
+    """
+    Tests for Reviewer notification access, permissions, filtering,
+    unread counts, bulk read operations, and category isolation.
+    """
+
+    def setUp(self):
+        self.reviewer_1 = make_user(role=User.Role.REVIEWER)
+        self.reviewer_2 = make_user(role=User.Role.REVIEWER)
+        self.customer = make_user(role=User.Role.CUSTOMER)
+        self.restaurant_user = make_user(role=User.Role.RESTAURANT_USER)
+
+        # Create notifications for reviewer_1
+        self.notif_r1_complaint = Notification.objects.create(
+            recipient=self.reviewer_1,
+            event_type=Notification.EventType.COMPLAINT_SUBMITTED,
+            message="New complaint submitted for review",
+            is_read=False,
+        )
+        self.notif_r1_escalation = Notification.objects.create(
+            recipient=self.reviewer_1,
+            event_type=Notification.EventType.ESCALATION_CREATED,
+            message="Escalation assigned to you",
+            is_read=False,
+        )
+        self.notif_r1_report = Notification.objects.create(
+            recipient=self.reviewer_1,
+            event_type=Notification.EventType.REPORT_SUBMITTED,
+            message="Report submitted",
+            is_read=True,
+        )
+
+        # Notification for reviewer_2
+        self.notif_r2 = Notification.objects.create(
+            recipient=self.reviewer_2,
+            event_type=Notification.EventType.COMPLAINT_SUBMITTED,
+            message="Reviewer 2 secret notification",
+            is_read=False,
+        )
+
+        # Notification for customer
+        self.notif_cust = Notification.objects.create(
+            recipient=self.customer,
+            event_type=Notification.EventType.COMPLAINT_STATUS_CHANGED,
+            message="Your complaint was resolved",
+            is_read=False,
+        )
+
+    def test_14_reviewer_can_retrieve_own_notifications(self):
+        resp = self.client.get("/api/v1/notifications/", **auth(self.reviewer_1))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp.json()}
+        self.assertEqual(ids, {self.notif_r1_complaint.pk, self.notif_r1_escalation.pk, self.notif_r1_report.pk})
+
+    def test_15_reviewer_cannot_retrieve_another_reviewers_notifications(self):
+        resp = self.client.get("/api/v1/notifications/", **auth(self.reviewer_1))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp.json()}
+        self.assertNotIn(self.notif_r2.pk, ids)
+
+    def test_16_customer_cannot_access_reviewer_notifications(self):
+        resp = self.client.get("/api/v1/notifications/", **auth(self.customer))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp.json()}
+        self.assertEqual(ids, {self.notif_cust.pk})
+        self.assertNotIn(self.notif_r1_complaint.pk, ids)
+        self.assertNotIn(self.notif_r2.pk, ids)
+
+    def test_17_restaurant_user_cannot_access_reviewer_notifications(self):
+        resp = self.client.get("/api/v1/notifications/", **auth(self.restaurant_user))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json(), [])
+
+    def test_18_reviewer_cannot_patch_another_users_notification(self):
+        resp = self.client.patch(
+            f"/api/v1/notifications/{self.notif_r2.pk}/",
+            {"is_read": True},
+            format="json",
+            **auth(self.reviewer_1),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_19_unread_count_endpoint(self):
+        resp = self.client.get("/api/v1/notifications/unread-count/", **auth(self.reviewer_1))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        # reviewer_1 has 2 unread, 1 read
+        self.assertEqual(resp.json(), {"unread_count": 2})
+
+    def test_20_mark_all_read_endpoint(self):
+        resp = self.client.post("/api/v1/notifications/mark-all-read/", **auth(self.reviewer_1))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["updated_count"], 2)
+
+        # Verify reviewer_1's notifications are now all read
+        unread = Notification.objects.filter(recipient=self.reviewer_1, is_read=False).count()
+        self.assertEqual(unread, 0)
+
+        # Verify reviewer_2's notification is unaffected
+        self.notif_r2.refresh_from_db()
+        self.assertFalse(self.notif_r2.is_read)
+
+    def test_21_filter_by_read_and_unread(self):
+        resp_unread = self.client.get("/api/v1/notifications/?is_read=false", **auth(self.reviewer_1))
+        self.assertEqual(resp_unread.status_code, status.HTTP_200_OK)
+        unread_ids = {n["id"] for n in resp_unread.json()}
+        self.assertEqual(unread_ids, {self.notif_r1_complaint.pk, self.notif_r1_escalation.pk})
+
+        resp_read = self.client.get("/api/v1/notifications/?is_read=true", **auth(self.reviewer_1))
+        self.assertEqual(resp_read.status_code, status.HTTP_200_OK)
+        read_ids = {n["id"] for n in resp_read.json()}
+        self.assertEqual(read_ids, {self.notif_r1_report.pk})
+
+    def test_22_filter_by_category(self):
+        resp_complaints = self.client.get("/api/v1/notifications/?category=complaints", **auth(self.reviewer_1))
+        self.assertEqual(resp_complaints.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp_complaints.json()}
+        self.assertEqual(ids, {self.notif_r1_complaint.pk})
+
+        resp_escalations = self.client.get("/api/v1/notifications/?category=escalations", **auth(self.reviewer_1))
+        self.assertEqual(resp_escalations.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp_escalations.json()}
+        self.assertEqual(ids, {self.notif_r1_escalation.pk})
+
+        resp_reports = self.client.get("/api/v1/notifications/?category=reports", **auth(self.reviewer_1))
+        self.assertEqual(resp_reports.status_code, status.HTTP_200_OK)
+        ids = {n["id"] for n in resp_reports.json()}
+        self.assertEqual(ids, {self.notif_r1_report.pk})
+
+    def test_23_pagination_when_requested(self):
+        resp = self.client.get("/api/v1/notifications/?page=1&page_size=2", **auth(self.reviewer_1))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.json()
+        self.assertIn("count", data)
+        self.assertIn("results", data)
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(len(data["results"]), 2)
+
+    def test_24_reviewer_rejection_notification_integration(self):
+        """Verifies Phase 2.1 rejection creates notification for customer."""
+        customer = make_user()
+        restaurant = make_restaurant()
+        report = FoodReport.objects.create(
+            customer=customer, restaurant=restaurant, title="Spoiled food", description="d",
+            status=FoodReport.Status.SUBMITTED,
+        )
+        complaint = ComplaintService().create(
+            food_report=report, requesting_user=customer, title="Spoiled food item",
+            description="Bad taste and smell", category=Complaint.Category.SPOILAGE,
+        )
+        ComplaintService().update(complaint, {"status": Complaint.Status.UNDER_REVIEW})
+
+        # Reject as reviewer
+        ComplaintService().update(
+            complaint,
+            {"status": Complaint.Status.REJECTED, "rejection_reason": "Insufficient evidence provided."},
+            requesting_user=self.reviewer_1,
+        )
+
+        # Verify customer received notification
+        rejection_notif = Notification.objects.filter(
+            recipient=customer,
+            event_type=Notification.EventType.COMPLAINT_STATUS_CHANGED,
+            related_complaint=complaint,
+        ).first()
+        self.assertIsNotNone(rejection_notif)
+        self.assertIn("rejected", rejection_notif.message.lower())
+        self.assertIn("Insufficient evidence provided.", rejection_notif.message)
+

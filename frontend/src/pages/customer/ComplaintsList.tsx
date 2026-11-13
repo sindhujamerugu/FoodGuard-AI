@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   SortAsc,
   SortDesc,
-  TrendingUp,
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { ComplaintCard } from '@/components/complaints/ComplaintCard'
@@ -34,6 +33,7 @@ const FILTER_TABS: FilterTab[] = [
   { key: 'UNDER_REVIEW', label: 'Under Review', color: 'bg-warning-600 text-white',  dot: 'bg-warning-400' },
   { key: 'RESOLVED',     label: 'Resolved',     color: 'bg-success-600 text-white',  dot: 'bg-success-400' },
   { key: 'CLOSED',       label: 'Closed',       color: 'bg-neutral-500 text-white',  dot: 'bg-neutral-400' },
+  { key: 'REJECTED',     label: 'Rejected',     color: 'bg-danger-600 text-white',   dot: 'bg-danger-400' },
 ]
 
 // ── Mini stat card ─────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ export default function ComplaintsList() {
   // Count per status
   const counts = useMemo(() => {
     const all = data ?? []
-    const c: Record<Filter, number> = { ALL: all.length, SUBMITTED: 0, UNDER_REVIEW: 0, RESOLVED: 0, CLOSED: 0 }
+    const c: Record<Filter, number> = { ALL: all.length, SUBMITTED: 0, UNDER_REVIEW: 0, RESOLVED: 0, CLOSED: 0, REJECTED: 0 }
     all.forEach(x => { c[x.status] = (c[x.status] ?? 0) + 1 })
     return c
   }, [data])

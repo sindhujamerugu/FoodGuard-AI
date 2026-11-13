@@ -26,6 +26,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: ComplaintStatus | 'ALL' }> =
   { label: 'Under Review', value: 'UNDER_REVIEW' },
   { label: 'Resolved', value: 'RESOLVED' },
   { label: 'Closed', value: 'CLOSED' },
+  { label: 'Rejected', value: 'REJECTED' },
 ]
 
 const PRIORITY_OPTIONS: Array<{ label: string; value: ComplaintPriority | 'ALL' }> = [

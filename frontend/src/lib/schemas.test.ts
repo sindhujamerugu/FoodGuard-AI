@@ -47,7 +47,7 @@ describe('registerSchema', () => {
   })
 
   it('accepts every language the backend User model actually supports', () => {
-    for (const lang of ['en', 'te', 'hi', 'ta', 'kn', 'mr']) {
+    for (const lang of ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml']) {
       expect(registerSchema.safeParse({ ...base, preferred_language: lang }).success).toBe(true)
     }
   })

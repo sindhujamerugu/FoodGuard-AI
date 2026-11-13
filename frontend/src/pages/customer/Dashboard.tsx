@@ -31,7 +31,6 @@ import {
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { Reveal } from '@/components/motion/Reveal'
-import { EmptyState } from '@/components/states/EmptyState'
 import { ErrorState } from '@/components/states/ErrorState'
 import { ListSkeleton } from '@/components/states/LoadingSkeleton'
 import { StatusBadge } from '@/components/badges/StatusBadge'
@@ -87,7 +86,7 @@ function StatCard({ label, value, icon: Icon, color, loading, to }: StatCardProp
 function ActivityRow({
   id, title, subtitle, status, date, image, to, type,
 }: {
-  id: number; title: string; subtitle: string; status: string
+  id: number; title: string; subtitle: string; status: Parameters<typeof StatusBadge>[0]['status']
   date: string; image?: string | null; to: string; type: 'report' | 'complaint'
 }) {
   return (

@@ -13,7 +13,7 @@ interface AppShellProps {
 export function AppShell({ title, children }: AppShellProps) {
   const { user } = useAuth()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [, setSidebarCollapsed] = useState(false)
 
   const handleCollapsedChange = useCallback((collapsed: boolean) => {
     setSidebarCollapsed(collapsed)

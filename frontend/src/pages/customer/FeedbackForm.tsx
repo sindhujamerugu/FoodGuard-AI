@@ -11,7 +11,7 @@
  *  5. POST /api/v1/feedback/ → show success confirmation.
  */
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowLeft,
@@ -28,7 +28,6 @@ import { Reveal } from '@/components/motion/Reveal'
 import { Skeleton } from '@/components/states/LoadingSkeleton'
 import { useComplaints } from '@/hooks/useComplaints'
 import { useCreateFeedback, useFeedback } from '@/hooks/useFeedback'
-import { useTranslation } from '@/i18n'
 import { toApiError } from '@/types/errors'
 import { cn } from '@/lib/cn'
 
@@ -89,8 +88,6 @@ function StarSelector({
 
 export default function FeedbackForm() {
   const [params]   = useSearchParams()
-  const navigate   = useNavigate()
-  const { t }      = useTranslation()
 
   const complaintId = Number(params.get('complaintId') ?? '0')
 

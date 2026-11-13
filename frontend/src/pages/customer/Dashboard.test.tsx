@@ -79,6 +79,8 @@ function fakeReport(
     image: null,
     status,
     priority: 'LOW',
+    location_lat: null,
+    location_lng: null,
     created_at: createdAt,
     updated_at: createdAt,
   }

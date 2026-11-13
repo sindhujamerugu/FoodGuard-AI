@@ -549,6 +549,7 @@ class TestComplaintResponse(APITestCase):
             "id", "food_report", "customer", "restaurant",
             "title", "description", "category", "original_language",
             "status", "priority", "resolution_notes",
+            "rejection_reason", "rejected_by", "rejected_at",
             "submitted_at", "updated_at", "resolved_at",
         ]:
             self.assertIn(field, data, msg=f"Missing field: {field}")
@@ -659,3 +660,152 @@ class TestComplaintRelationships(APITestCase):
         self.assertEqual(
             resp.json()["customer"]["email"], self.customer.email
         )
+
+
+# ===========================================================================
+# Rejection workflow tests (39–52)
+# ===========================================================================
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class TestComplaintRejection(APITestCase):
+
+    def setUp(self):
+        self.customer = make_user()
+        self.reviewer = make_user(role=User.Role.REVIEWER)
+        self.admin_user = make_user(role=User.Role.ADMIN)
+        self.restaurant_user = make_user(role=User.Role.RESTAURANT_USER)
+        self.restaurant = make_restaurant(owner=self.restaurant_user)
+        self.report = make_submitted_report(self.customer, self.restaurant)
+
+        self.complaint = Complaint.objects.create(
+            food_report=self.report,
+            customer=self.customer,
+            restaurant=self.restaurant,
+            title="Rejection Workflow Test",
+            description="Testing complaint rejection.",
+            category=Complaint.Category.HYGIENE,
+            original_language="en",
+            status=Complaint.Status.UNDER_REVIEW,
+        )
+
+    def _reject(self, complaint_id=None, payload=None, user=None):
+        if complaint_id is None:
+            complaint_id = self.complaint.pk
+        if payload is None:
+            payload = {
+                "status": Complaint.Status.REJECTED,
+                "rejection_reason": "Insufficient evidence to corroborate contamination.",
+            }
+        if user is None:
+            user = self.reviewer
+        return self.client.patch(
+            DETAIL_URL(complaint_id),
+            payload,
+            format="json",
+            **auth(user),
+        )
+
+    def test_39_reviewer_can_reject_under_review_complaint(self):
+        resp = self._reject()
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["status"], Complaint.Status.REJECTED)
+        self.assertEqual(
+            resp.json()["rejection_reason"],
+            "Insufficient evidence to corroborate contamination.",
+        )
+        self.assertIsNotNone(resp.json()["rejected_at"])
+        self.assertEqual(resp.json()["rejected_by"]["id"], self.reviewer.pk)
+
+    def test_40_rejection_missing_reason_rejected_400(self):
+        resp = self._reject(payload={"status": Complaint.Status.REJECTED})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_41_rejection_empty_reason_rejected_400(self):
+        resp = self._reject(
+            payload={
+                "status": Complaint.Status.REJECTED,
+                "rejection_reason": "   \n\t  ",
+            }
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_42_rejection_invalid_complaint_id_404(self):
+        resp = self._reject(complaint_id=999999)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_43_customer_cannot_reject_complaint_403(self):
+        resp = self._reject(user=self.customer)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_44_restaurant_user_cannot_reject_complaint_403(self):
+        resp = self._reject(user=self.restaurant_user)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_45_unauthenticated_rejection_returns_401(self):
+        resp = self.client.patch(
+            DETAIL_URL(self.complaint.pk),
+            {
+                "status": Complaint.Status.REJECTED,
+                "rejection_reason": "Reason",
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_46_cannot_reject_resolved_complaint(self):
+        self.complaint.status = Complaint.Status.RESOLVED
+        self.complaint.save()
+        resp = self._reject()
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_47_cannot_reject_closed_complaint(self):
+        self.complaint.status = Complaint.Status.CLOSED
+        self.complaint.save()
+        resp = self._reject()
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_48_cannot_reject_already_rejected_complaint(self):
+        self._reject()
+        resp2 = self._reject()
+        self.assertEqual(resp2.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_49_reviewer_identity_and_timestamp_recorded(self):
+        resp = self._reject()
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        complaint = Complaint.objects.get(pk=self.complaint.pk)
+        self.assertEqual(complaint.rejected_by, self.reviewer)
+        self.assertIsNotNone(complaint.rejected_at)
+
+    def test_50_customer_can_view_rejection_status_and_reason(self):
+        self._reject()
+        resp = self.client.get(
+            DETAIL_URL(self.complaint.pk),
+            **auth(self.customer),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.json()
+        self.assertEqual(data["status"], Complaint.Status.REJECTED)
+        self.assertEqual(
+            data["rejection_reason"],
+            "Insufficient evidence to corroborate contamination.",
+        )
+        self.assertIsNotNone(data["rejected_at"])
+
+    def test_51_customer_notification_created_on_rejection(self):
+        from notifications.models import Notification
+
+        self._reject()
+        notif = Notification.objects.filter(
+            recipient=self.customer,
+            event_type=Notification.EventType.COMPLAINT_STATUS_CHANGED,
+            related_complaint=self.complaint,
+        ).first()
+        self.assertIsNotNone(notif)
+        self.assertIn("rejected", notif.message.lower())
+
+    def test_52_rejection_blocked_for_submitted_status_must_be_under_review(self):
+        self.complaint.status = Complaint.Status.SUBMITTED
+        self.complaint.save()
+        resp = self._reject()
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+

@@ -14,6 +14,7 @@ import {
   MessageSquare,
   ShieldAlert,
   UserCheck,
+  XCircle,
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/badges/StatusBadge'
@@ -28,6 +29,7 @@ import { AIReviewAssessment } from '@/components/reviewer/AIReviewAssessment'
 import { ConfirmationModal } from '@/components/reviewer/ConfirmationModal'
 import { EscalateCaseModal } from '@/components/reviewer/EscalateCaseModal'
 import { ImageViewerModal } from '@/components/reviewer/ImageViewerModal'
+import { RejectComplaintModal } from '@/components/reviewer/RejectComplaintModal'
 import { useComplaint, useUpdateComplaint } from '@/hooks/useComplaints'
 import { useReport } from '@/hooks/useReports'
 import { useAIAnalysis, useRunAIAnalysis } from '@/hooks/useAIAnalysis'
@@ -72,6 +74,7 @@ export default function ReviewerComplaintDetail() {
   } | null>(null)
   const [isEscalateModalOpen, setIsEscalateModalOpen] = useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
 
   const [prevComplaintId, setPrevComplaintId] = useState<number | null>(null)
   if (complaint && complaint.id !== prevComplaintId) {
@@ -106,8 +109,26 @@ export default function ReviewerComplaintDetail() {
     )
   }
 
-  const isTerminal = complaint.status === 'CLOSED'
+  const isTerminal = complaint.status === 'CLOSED' || complaint.status === 'REJECTED'
   const allowedNextStatuses = COMPLAINT_STATUS_TRANSITIONS[complaint.status]
+
+  async function handleConfirmRejection(rejectionReason: string, additionalRemarks?: string) {
+    setSaveError(null)
+    setSaveSuccess(null)
+    try {
+      await updateComplaint.mutateAsync({
+        status: 'REJECTED',
+        rejection_reason: rejectionReason,
+        resolution_notes: additionalRemarks ?? notes,
+      })
+      setStatus('REJECTED')
+      setSaveSuccess('Complaint has been formally rejected. The customer has been notified.')
+      setIsRejectModalOpen(false)
+    } catch (error) {
+      setSaveError(toApiError(error).message)
+      throw error
+    }
+  }
 
   async function executeStatusChange(nextStatus: ComplaintStatus) {
     setSaveError(null)
@@ -352,13 +373,41 @@ export default function ReviewerComplaintDetail() {
               <StatusBadge status={status} />
             </div>
 
+            <Link to={`/reviewer/complaints/${complaint.id}/investigation`}>
+              <Button size="sm" variant="outline" className="mb-4 w-full justify-center text-xs">
+                Open investigation workspace
+              </Button>
+            </Link>
+
             {isTerminal ? (
-              <div className="rounded-xl bg-neutral-50 p-4 text-xs text-neutral-500 text-center border border-neutral-200">
-                <p className="font-semibold text-neutral-800">Case Audit Locked</p>
-                <p className="mt-1">
-                  This complaint has been permanently closed. Workflow state and investigation notes are archived.
-                </p>
-              </div>
+              complaint.status === 'REJECTED' ? (
+                <div className="rounded-xl bg-danger-50 p-4 text-xs text-danger-800 border border-danger-200 space-y-2">
+                  <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-danger-900">
+                    <XCircle className="size-4 text-danger-600" />
+                    Case Formally Rejected
+                  </div>
+                  <p className="leading-relaxed">
+                    <strong className="font-semibold text-danger-950">Rejection Reason:</strong>{' '}
+                    {complaint.rejection_reason || 'No specific rationale entered.'}
+                  </p>
+                  {complaint.rejected_at && (
+                    <p className="text-[11px] text-danger-600 font-mono">
+                      Rejected on: {new Date(complaint.rejected_at).toLocaleString()}
+                      {complaint.rejected_by && ` by ${complaint.rejected_by.first_name} ${complaint.rejected_by.last_name}`}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-danger-600">
+                    This complaint case is sealed. No further reviewer transitions are permitted.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-neutral-50 p-4 text-xs text-neutral-500 text-center border border-neutral-200">
+                  <p className="font-semibold text-neutral-800">Case Audit Locked</p>
+                  <p className="mt-1">
+                    This complaint has been permanently closed. Workflow state and investigation notes are archived.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="space-y-4">
                 {/* Workflow Transitions */}
@@ -406,6 +455,21 @@ export default function ReviewerComplaintDetail() {
                             className="bg-neutral-800 hover:bg-neutral-900 text-white text-xs"
                           >
                             Close Case
+                          </Button>
+                        )
+                      }
+                      if (next === 'REJECTED') {
+                        return (
+                          <Button
+                            key={next}
+                            size="sm"
+                            variant="outline"
+                            isLoading={updateComplaint.isPending}
+                            onClick={() => setIsRejectModalOpen(true)}
+                            className="text-xs border-danger-200 text-danger-700 hover:bg-danger-50"
+                          >
+                            <XCircle className="size-3.5 mr-1" />
+                            Reject Complaint
                           </Button>
                         )
                       }
@@ -503,7 +567,8 @@ export default function ReviewerComplaintDetail() {
               underReviewAt={
                 complaint.status === 'UNDER_REVIEW' ||
                 complaint.status === 'RESOLVED' ||
-                complaint.status === 'CLOSED'
+                complaint.status === 'CLOSED' ||
+                complaint.status === 'REJECTED'
                   ? complaint.updated_at
                   : null
               }
@@ -511,6 +576,8 @@ export default function ReviewerComplaintDetail() {
               escalationLevel={linkedEscalation?.escalation_level ?? null}
               resolvedAt={complaint.resolved_at}
               closedAt={complaint.status === 'CLOSED' ? complaint.resolved_at : null}
+              rejectedAt={complaint.rejected_at}
+              rejectionReason={complaint.rejection_reason}
               status={complaint.status}
             />
           </div>
@@ -552,6 +619,20 @@ export default function ReviewerComplaintDetail() {
           onClose={() => setIsImageModalOpen(false)}
         />
       )}
+
+      {/* Reject Complaint Modal */}
+      <RejectComplaintModal
+        isOpen={isRejectModalOpen}
+        complaintId={complaint.id}
+        complaintTitle={complaint.title}
+        isLoading={updateComplaint.isPending}
+        apiError={saveError}
+        onConfirm={handleConfirmRejection}
+        onCancel={() => {
+          setIsRejectModalOpen(false)
+          setSaveError(null)
+        }}
+      />
     </AppShell>
   )
 }
