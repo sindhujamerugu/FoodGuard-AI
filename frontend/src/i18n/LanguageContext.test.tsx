@@ -49,23 +49,20 @@ describe('LanguageContext — Full 6-Language Localization Suite', () => {
     mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false })
   })
 
-  it('supports all six languages in SUPPORTED_UI_LANGUAGES and DICTIONARIES', () => {
-    expect(SUPPORTED_UI_LANGUAGES).toEqual(['en', 'te', 'hi', 'ta', 'kn', 'mr'])
-    expect(Object.keys(DICTIONARIES)).toEqual(['en', 'te', 'hi', 'ta', 'kn', 'mr'])
+  it('supports all seven languages in SUPPORTED_UI_LANGUAGES and DICTIONARIES', () => {
+    expect(SUPPORTED_UI_LANGUAGES).toEqual(['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml'])
+    expect(Object.keys(DICTIONARIES)).toEqual(['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml'])
   })
 
-  it('guarantees every dictionary has the exact same 288 keys as en.ts with zero missing keys', () => {
-    const enKeys = Object.keys(en)
-    expect(enKeys.length).toBe(288)
+  it('guarantees every dictionary has the same keys as en.ts with zero missing values', () => {
+    const enKeys = Object.keys(en).sort()
 
     for (const lang of SUPPORTED_UI_LANGUAGES) {
       const dict = DICTIONARIES[lang]
       expect(dict).toBeDefined()
-      const dictKeys = Object.keys(dict)
-      expect(dictKeys.length).toBe(288)
-      expect(dictKeys.sort()).toEqual(enKeys.sort())
+      const dictKeys = Object.keys(dict).sort()
+      expect(dictKeys).toEqual(enKeys)
 
-      // Verify no empty string values
       for (const key of enKeys) {
         const val = dict[key as keyof typeof en]
         expect(val).toBeDefined()

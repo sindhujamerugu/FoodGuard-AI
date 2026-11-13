@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/states/LoadingSkeleton'
 import { CaseHeader } from '@/components/reviewer/CaseHeader'
 import { CaseTimeline } from '@/components/reviewer/CaseTimeline'
 import { AIReviewAssessment } from '@/components/reviewer/AIReviewAssessment'
+import { ComplaintLocationMapCard } from '@/components/reviewer/ComplaintLocationMapCard'
 import { ConfirmationModal } from '@/components/reviewer/ConfirmationModal'
 import { EscalateCaseModal } from '@/components/reviewer/EscalateCaseModal'
 import { ImageViewerModal } from '@/components/reviewer/ImageViewerModal'
@@ -322,6 +323,13 @@ export default function ReviewerComplaintDetail() {
               </div>
             </div>
           </div>
+
+          <ComplaintLocationMapCard
+            latitude={linkedReport?.location_lat ?? null}
+            longitude={linkedReport?.location_lng ?? null}
+            locationName={complaint.restaurant.name}
+            className="mt-0"
+          />
 
           {/* Linked Report Quick Summary */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card flex items-center justify-between">

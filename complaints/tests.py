@@ -809,3 +809,49 @@ class TestComplaintRejection(APITestCase):
         resp = self._reject()
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class TestComplaintLocationAccess(APITestCase):
+
+    def setUp(self):
+        self.customer = make_user()
+        self.reviewer = make_user(role=User.Role.REVIEWER)
+        self.restaurant = make_restaurant()
+        self.report = make_submitted_report(self.customer, self.restaurant)
+        self.report.location_lat = 17.385083
+        self.report.location_lng = 78.486671
+        self.report.save()
+        self.complaint = Complaint.objects.create(
+            food_report=self.report,
+            customer=self.customer,
+            restaurant=self.restaurant,
+            title="Location check complaint",
+            description="Complaint includes location details.",
+            category=Complaint.Category.HYGIENE,
+            original_language="en",
+            status=Complaint.Status.UNDER_REVIEW,
+        )
+
+    def test_53_location_coordinates_are_returned_for_authorized_reviewer(self):
+        resp = self.client.get(
+            f"/api/v1/reports/{self.report.pk}/",
+            **auth(self.reviewer),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()["location_lat"], "17.385083")
+        self.assertEqual(resp.json()["location_lng"], "78.486671")
+
+    def test_54_missing_location_coordinates_are_safe_and_null(self):
+        self.report.location_lat = None
+        self.report.location_lng = None
+        self.report.save()
+
+        resp = self.client.get(
+            f"/api/v1/reports/{self.report.pk}/",
+            **auth(self.customer),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsNone(resp.json()["location_lat"])
+        self.assertIsNone(resp.json()["location_lng"])
+
+

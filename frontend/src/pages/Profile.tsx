@@ -45,6 +45,7 @@ const LANGUAGE_KEYS: Record<string, TranslationKey> = {
   ta: 'language.ta',
   kn: 'language.kn',
   mr: 'language.mr',
+  ml: 'language.ml',
 }
 
 const ROLE_KEYS: Record<string, TranslationKey> = {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { LanguageProvider, useLanguage } from '@/i18n/LanguageContext'
 import { en } from '@/i18n/en'
@@ -9,6 +10,7 @@ import { hi } from '@/i18n/hi'
 import { ta } from '@/i18n/ta'
 import { kn } from '@/i18n/kn'
 import { mr } from '@/i18n/mr'
+import { ml } from '@/i18n/ml'
 import { AIDisclaimer } from '@/components/ai/AIDisclaimer'
 import { ConfidenceBar } from '@/components/ai/ConfidenceBar'
 import { ConcernChip } from '@/components/ai/ConcernChip'
@@ -16,6 +18,7 @@ import { AIAnalysisCard } from '@/components/ai/AIAnalysisCard'
 import { ComplaintTimeline, LinkedReportBadge } from '@/components/complaints/ComplaintTimeline'
 import { ComplaintOverview } from '@/components/complaints/ComplaintOverview'
 import Profile from '@/pages/Profile'
+import { createTestQueryClient } from '@/test/testUtils'
 import type { AIAnalysis } from '@/types/aiAnalysis'
 import type { Complaint } from '@/types/complaint'
 
@@ -38,24 +41,34 @@ vi.mock('@/context/AuthContext', () => ({
   }),
 }))
 
+function renderWithQueryClient(ui: React.ReactNode) {
+  return render(
+    <QueryClientProvider client={createTestQueryClient()}>
+      {ui}
+    </QueryClientProvider>,
+  )
+}
+
 describe('Phase 3 — Customer Portal Full Language Localization', () => {
   beforeEach(() => {
     localStorage.clear()
   })
-  it('verifies 100% dictionary key parity across all 6 languages (en, te, hi, ta, kn, mr)', () => {
+  it('verifies 100% dictionary key parity across all 7 languages (en, te, hi, ta, kn, mr, ml)', () => {
     const enKeys = Object.keys(en)
     const teKeys = Object.keys(te)
     const hiKeys = Object.keys(hi)
     const taKeys = Object.keys(ta)
     const knKeys = Object.keys(kn)
     const mrKeys = Object.keys(mr)
+    const mlKeys = Object.keys(ml)
 
-    expect(enKeys.length).toBe(288)
-    expect(teKeys.length).toBe(288)
-    expect(hiKeys.length).toBe(288)
-    expect(taKeys.length).toBe(288)
-    expect(knKeys.length).toBe(288)
-    expect(mrKeys.length).toBe(288)
+    expect(enKeys.length).toBe(mlKeys.length)
+    expect(teKeys.length).toBe(enKeys.length)
+    expect(hiKeys.length).toBe(enKeys.length)
+    expect(taKeys.length).toBe(enKeys.length)
+    expect(knKeys.length).toBe(enKeys.length)
+    expect(mrKeys.length).toBe(enKeys.length)
+    expect(mlKeys.length).toBe(enKeys.length)
 
     // Check no empty translations
     for (const key of enKeys) {
@@ -64,6 +77,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       expect(ta[key as keyof typeof ta], `Missing ta translation for ${key}`).toBeTruthy()
       expect(kn[key as keyof typeof kn], `Missing kn translation for ${key}`).toBeTruthy()
       expect(mr[key as keyof typeof mr], `Missing mr translation for ${key}`).toBeTruthy()
+      expect(ml[key as keyof typeof ml], `Missing ml translation for ${key}`).toBeTruthy()
     }
   })
 
@@ -80,7 +94,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <DisclaimerProbe />
       </LanguageProvider>,
@@ -115,7 +129,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <ConcernProbe />
       </LanguageProvider>,
@@ -165,7 +179,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <AIAnalysisProbe />
       </LanguageProvider>,
@@ -231,7 +245,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <TimelineProbe />
       </LanguageProvider>,
@@ -297,7 +311,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <OverviewProbe />
       </LanguageProvider>,
@@ -330,7 +344,7 @@ describe('Phase 3 — Customer Portal Full Language Localization', () => {
       )
     }
 
-    render(
+    renderWithQueryClient(
       <LanguageProvider>
         <ProfileProbe />
       </LanguageProvider>,

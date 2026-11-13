@@ -113,7 +113,7 @@ describe('ReportsList — UI states', () => {
     })
     renderList()
     const { default: userEvent } = await import('@testing-library/user-event')
-    await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'RESOLVED')
+    await userEvent.click(screen.getByRole('tab', { name: /resolved/i }))
     expect(screen.getByText('No reports match this filter')).toBeInTheDocument()
     expect(screen.queryByText('No food safety reports yet')).not.toBeInTheDocument()
   })

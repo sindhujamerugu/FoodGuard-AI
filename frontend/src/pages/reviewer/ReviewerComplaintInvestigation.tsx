@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CheckCircle2, FileText, ShieldAlert, Sparkles } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
+import { ComplaintLocationMapCard } from '@/components/reviewer/ComplaintLocationMapCard'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { ErrorState } from '@/components/states/ErrorState'
 import { useComplaint } from '@/hooks/useComplaints'
+import { useReport } from '@/hooks/useReports'
 import {
   useComplaintInvestigation,
   useComplaintInvestigationHistory,
@@ -49,6 +51,7 @@ export default function ReviewerComplaintInvestigation() {
   const complaintId = Number(id)
 
   const complaintQuery = useComplaint(complaintId)
+  const linkedReportQuery = useReport(complaintQuery.data?.food_report.id ?? 0)
   const investigationQuery = useComplaintInvestigation(complaintId)
   const investigationHistoryQuery = useComplaintInvestigationHistory(complaintId)
   const startInvestigation = useStartComplaintInvestigation(complaintId)
@@ -224,7 +227,14 @@ export default function ReviewerComplaintInvestigation() {
 
         {hasInvestigation && (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_0.85fr]">
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-card">
+            <div className="space-y-6">
+              <ComplaintLocationMapCard
+                latitude={linkedReportQuery.data?.location_lat ?? null}
+                longitude={linkedReportQuery.data?.location_lng ?? null}
+                locationName={complaintQuery.data.restaurant.name}
+              />
+
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-card">
               <div className="mb-6 flex items-center justify-between border-b border-neutral-200 pb-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Case investigation</p>
@@ -325,6 +335,7 @@ export default function ReviewerComplaintInvestigation() {
                     Complete investigation
                   </Button>
                 </div>
+              </div>
               </div>
             </div>
 

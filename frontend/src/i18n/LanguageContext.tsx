@@ -10,8 +10,8 @@ import { kn } from './kn'
 import { mr } from './mr'
 import { ml } from './ml'
 
-/** All six supported UI languages for FoodGuard AI:
- * English, Telugu, Hindi, Tamil, Kannada, and Marathi. */
+/** All seven supported UI languages for FoodGuard AI:
+ * English, Telugu, Hindi, Tamil, Kannada, Marathi, and Malayalam. */
 export const SUPPORTED_UI_LANGUAGES = ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'ml'] as const
 export type UiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number]
 

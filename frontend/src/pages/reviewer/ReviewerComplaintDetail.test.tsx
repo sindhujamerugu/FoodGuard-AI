@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import ReviewerComplaintDetail from './ReviewerComplaintDetail'
+import { ComplaintLocationMapCard } from '@/components/reviewer/ComplaintLocationMapCard'
 import { LanguageProvider } from '@/i18n/LanguageContext'
 import { createTestQueryClient } from '@/test/testUtils'
 import type { Complaint } from '@/types/complaint'
@@ -62,6 +63,19 @@ vi.mock('@/hooks/useEscalations', () => ({
   useCreateEscalation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
+vi.mock('react-leaflet', () => ({
+  MapContainer: ({ children, center, zoom, scrollWheelZoom, ...props }: any) => (
+    <div data-testid="location-map" {...props}>{children}</div>
+  ),
+  TileLayer: ({ eventHandlers, url, attribution, ...props }: any) => (
+    <div data-testid="map-tile-layer" onClick={() => eventHandlers?.tileerror?.({})} {...props}>
+      {url}
+    </div>
+  ),
+  Marker: ({ children, position, icon, ...props }: any) => <div data-testid="map-marker" {...props}>{children}</div>,
+  Popup: ({ children }: any) => <div>{children}</div>,
+}))
+
 const FAKE_REPORT: FoodReport = {
   id: 10,
   customer: { id: 1, email: 'cust@example.com', first_name: 'Jane', last_name: 'Doe' },
@@ -116,6 +130,44 @@ function renderComplaintDetail() {
     </QueryClientProvider>,
   )
 }
+
+describe('ComplaintLocationMapCard', () => {
+  it('renders a valid map and latitude/longitude values for complaint coordinates', () => {
+    render(
+      <LanguageProvider>
+        <ComplaintLocationMapCard latitude="17.385083" longitude="78.486671" locationName="Biryani House" />
+      </LanguageProvider>,
+    )
+
+    expect(screen.getByTestId('location-map')).toBeInTheDocument()
+    expect(screen.getByText(/Complaint location/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/17\.385083/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/78\.486671/i).length).toBeGreaterThan(0)
+  })
+
+  it('shows a friendly fallback when the complaint has no valid coordinates', () => {
+    render(
+      <LanguageProvider>
+        <ComplaintLocationMapCard latitude={null} longitude={null} />
+      </LanguageProvider>,
+    )
+
+    expect(screen.getByText(/Location information unavailable/i)).toBeInTheDocument()
+    expect(screen.queryByTestId('location-map')).not.toBeInTheDocument()
+  })
+
+  it('handles a map tile failure without crashing the reviewer page', () => {
+    render(
+      <LanguageProvider>
+        <ComplaintLocationMapCard latitude="17.385083" longitude="78.486671" />
+      </LanguageProvider>,
+    )
+
+    fireEvent.click(screen.getByTestId('map-tile-layer'))
+
+    expect(screen.getByText(/Map preview unavailable/i)).toBeInTheDocument()
+  })
+})
 
 describe('ReviewerComplaintDetail — Rejection Workflow', () => {
   beforeEach(() => {

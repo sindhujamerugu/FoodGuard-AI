@@ -28,7 +28,17 @@ export const en = {
   'common.language': 'Language',
 
   // Topbar
-  'topbar.openMenu': 'Open menu',
+  'complaint.location.heading': 'Complaint location',
+  'complaint.location.latitude': 'Latitude',
+  'complaint.location.longitude': 'Longitude',
+  'complaint.location.viewExternal': 'Open in map',
+  'complaint.location.unavailable': 'Location information unavailable',
+  'complaint.location.unavailableText': 'No valid GPS coordinates were saved for this complaint.',
+  'complaint.location.mapError': 'Map preview unavailable',
+  'complaint.location.mapErrorText': 'The map provider could not load this location.',
+  'complaint.location.openInMap': 'Open map',
+  'complaint.location.address': 'Location details',
+'topbar.openMenu': 'Open menu',
   'topbar.closeMenu': 'Close menu',
 
   // Auth — Login
@@ -298,6 +308,7 @@ export const en = {
   'language.ta': 'Tamil',
   'language.kn': 'Kannada',
   'language.mr': 'Marathi',
+  'language.ml': 'Malayalam',
   'validation.titleRequired': 'Title is required.',
   'validation.descriptionRequired': 'Description is required.',
   'validation.selectRestaurant': 'Select a restaurant.',
